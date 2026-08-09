@@ -20,6 +20,9 @@ interface Props {
     // The compliance documents the onboarding request asked for — the Documents
     // section is scoped to these, so application-time docs aren't shown here.
     requestedDocuments: RequestedDoc[];
+    // Override the documents endpoint — used for a STAFF subject, whose documents
+    // are keyed by EmployeeRecord (defaults to the application's documents URL).
+    documentsUrl?: string;
     onClose: () => void;
     onViewFile: (url: string, name: string) => void;
 }
@@ -40,7 +43,7 @@ type Section =
 // Read-only review of a candidate's onboarding submission, laid out like the
 // applicant page (section rail + content). Renders inline in the dashboard so the
 // left menu stays. Files stream through the admin proxy (never the raw URL).
-export function CandidateOnboardingDetail({ applicationId, applicantName, jobTitle, packet, requestedDocuments, onClose, onViewFile }: Props) {
+export function CandidateOnboardingDetail({ applicationId, applicantName, jobTitle, packet, requestedDocuments, documentsUrl, onClose, onViewFile }: Props) {
     const [loading, setLoading] = useState(true);
     const [questionnaires, setQuestionnaires] = useState<LoadedQuestionnaire[]>([]);
     const [documents, setDocuments] = useState<DocRow[]>([]);
@@ -62,7 +65,7 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                             answers: data?.response?.answers || {},
                         } as LoadedQuestionnaire;
                     })),
-                    fetch(`/api/applications/${applicationId}/documents`).then((r) => r.json()).catch(() => ({ documents: [] })),
+                    fetch(documentsUrl || `/api/applications/${applicationId}/documents`).then((r) => r.json()).catch(() => ({ documents: [] })),
                 ]);
                 setQuestionnaires(qResults);
                 setDocuments(Array.isArray(docRes?.documents) ? docRes.documents : []);

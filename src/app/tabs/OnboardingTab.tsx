@@ -136,7 +136,7 @@ export function OnboardingTab() {
 
     // ── Candidates list ───────────────────────────────────────────────────
     const [rows, setRows] = useState<OnboardingRow[]>([]);
-    const [confirmRemove, setConfirmRemove] = useState<{ item: PacketItem; row: OnboardingRow } | null>(null);
+    const [confirmRemove, setConfirmRemove] = useState<{ item: PacketItem; applicantName: string } | null>(null);
     const [detailRow, setDetailRow] = useState<OnboardingRow | null>(null);
     const [loadingRows, setLoadingRows] = useState(true);
     const [statusFilter, setStatusFilter] = useState<'' | OnboardingStatus>('');
@@ -157,6 +157,9 @@ export function OnboardingTab() {
     const [expandedStaff, setExpandedStaff] = useState<Record<string, boolean>>({});
     // staffId to preselect when opening the onboard/manage modal (null = new).
     const [manageStaffId, setManageStaffId] = useState<string | null>(null);
+    // Staff parity: View detail + Add-questionnaires targets (mirror candidates).
+    const [detailStaffRow, setDetailStaffRow] = useState<StaffOnboardingRow | null>(null);
+    const [startStaffRow, setStartStaffRow] = useState<StaffOnboardingRow | null>(null);
 
     // ── Assign-questionnaires modal ───────────────────────────────────────
     const [startRow, setStartRow] = useState<OnboardingRow | null>(null);
@@ -240,6 +243,10 @@ export function OnboardingTab() {
             setLoadingStaff(false);
         }
     };
+
+    // Refetch whichever list is showing — so editor/remove/assign from a staff row
+    // refresh the staff list, and from a candidate row refresh candidates.
+    const refetchCurrent = () => { if (subTab === 'staff') void fetchStaffRows(); else void fetchRows(); };
 
     useEffect(() => { void fetchForms(); void fetchJobs(); }, []);
     useEffect(() => {
@@ -386,25 +393,29 @@ export function OnboardingTab() {
     // afterwards only makes sense for a single pick — with several assigned the
     // admin chooses which to fill in from the expanded packet.
     const handleAssignQuestionnaires = async () => {
-        if (!startRow || pickFormIds.length === 0) return;
+        // Works for a candidate (startRow, by applicationId) or a staff member
+        // (startStaffRow, by staffId — the endpoint resolves/creates the record).
+        const body = startRow ? { applicationId: startRow._id } : startStaffRow ? { staffId: startStaffRow.staffId } : null;
+        if (!body || pickFormIds.length === 0) return;
         setStarting(true);
         try {
             const res = await fetch('/api/admin/onboarding', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ applicationId: startRow._id, onboardingFormIds: pickFormIds }),
+                body: JSON.stringify({ ...body, onboardingFormIds: pickFormIds }),
             });
             const data = await res.json();
             if (!res.ok) {
                 setAlert({ title: 'Could not assign', message: data?.error || 'Failed to assign questionnaires.' });
                 return;
             }
-            const applicationId = startRow._id;
             const single = pickFormIds.length === 1;
+            if (startRow) setExpandedRows((prev) => ({ ...prev, [startRow._id]: true }));
+            if (startStaffRow) setExpandedStaff((prev) => ({ ...prev, [startStaffRow.staffId]: true }));
             setStartRow(null);
+            setStartStaffRow(null);
             setPickFormIds([]);
-            setExpandedRows((prev) => ({ ...prev, [applicationId]: true }));
-            await fetchRows();
+            refetchCurrent();
             if (single && Array.isArray(data?.data) && data.data[0]?._id) void openEditor(String(data.data[0]._id));
         } finally {
             setStarting(false);
@@ -425,7 +436,7 @@ export function OnboardingTab() {
                 setAlert({ title: 'Could not remove', message: data?.error || 'Failed to remove questionnaire.' });
                 return;
             }
-            await fetchRows();
+            refetchCurrent();
         } finally {
             setRemovingId(null);
             setConfirmRemove(null);
@@ -505,7 +516,7 @@ export function OnboardingTab() {
             if (nextStatus) setEditorMeta((m) => ({ ...m, status: nextStatus }));
             // Completing closes the editor; reopening keeps it open to edit.
             if (nextStatus === 'completed') setEditorId(null);
-            await fetchRows();
+            refetchCurrent();
         } finally {
             setSavingAnswers(false);
         }
@@ -613,6 +624,25 @@ export function OnboardingTab() {
                     packet={detailRow.onboarding.map((p) => ({ _id: p._id, formName: p.formName, status: p.status }))}
                     requestedDocuments={detailRow.invite?.requestedDocuments || []}
                     onClose={() => setDetailRow(null)}
+                    onViewFile={(url, name) => setViewerFile({ url, name })}
+                />
+                {fileViewer}
+            </div>
+        );
+    }
+
+    // Staff submission review — same component, documents keyed by the record.
+    if (detailStaffRow) {
+        return (
+            <div className="space-y-6">
+                <CandidateOnboardingDetail
+                    applicationId={detailStaffRow.recordId || detailStaffRow.staffId}
+                    applicantName={detailStaffRow.applicantName}
+                    jobTitle="Staff onboarding"
+                    packet={detailStaffRow.onboarding.map((p) => ({ _id: p._id, formName: p.formName, status: p.status }))}
+                    requestedDocuments={detailStaffRow.invite?.requestedDocuments || []}
+                    documentsUrl={detailStaffRow.recordId ? `/api/admin/onboarding/staff/${detailStaffRow.recordId}/documents` : undefined}
+                    onClose={() => setDetailStaffRow(null)}
                     onViewFile={(url, name) => setViewerFile({ url, name })}
                 />
                 {fileViewer}
@@ -807,7 +837,7 @@ export function OnboardingTab() {
                                                                 <Edit className="h-3.5 w-3.5" /> Open
                                                             </button>
                                                             <button
-                                                                onClick={() => setConfirmRemove({ item, row })}
+                                                                onClick={() => setConfirmRemove({ item, applicantName: row.applicantName })}
                                                                 disabled={removingId === item._id}
                                                                 title="Remove this questionnaire from the candidate"
                                                                 aria-label={`Remove ${item.formName}`}
@@ -951,13 +981,19 @@ export function OnboardingTab() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button
-                                                    onClick={() => { setManageStaffId(row.staffId); setShowStaffOnboard(true); }}
-                                                    title={hasRequest ? "Manage this staff member's onboarding" : 'Start onboarding for this staff member'}
-                                                    className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${hasRequest ? 'border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10' : 'bg-brand-primary text-white hover:bg-brand-primary-dark'}`}
-                                                >
-                                                    <Send className="h-3.5 w-3.5" /> {hasRequest ? 'Manage' : 'Onboard'}
-                                                </button>
+                                                <div className="inline-flex items-center gap-2">
+                                                    {packet.length > 0 && (
+                                                        <button onClick={() => setDetailStaffRow(row)} title="View submitted answers and documents" className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ui-card-soft text-text-secondary hover:text-text-primary">
+                                                            <Eye className="h-3.5 w-3.5" /> View
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => { setManageStaffId(row.staffId); setShowStaffOnboard(true); }} title="Send a secure onboarding link for the staff member to self-serve" className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10">
+                                                        <Send className="h-3.5 w-3.5" /> Request
+                                                    </button>
+                                                    <button onClick={() => { setStartStaffRow(row); setPickFormIds([]); }} className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${packet.length > 0 ? 'ui-card-soft text-text-secondary hover:text-text-primary' : 'bg-brand-primary text-white hover:bg-brand-primary-dark'}`}>
+                                                        <Plus className="h-3.5 w-3.5" /> {packet.length > 0 ? 'Add' : 'Start'}
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {expanded && packet.map((item) => {
@@ -969,7 +1005,7 @@ export function OnboardingTab() {
                                                         <p className="text-sm font-semibold text-text-primary">{item.formName}</p>
                                                         <p className="text-[10px] text-text-muted">{item.answeredCount}/{item.totalCount} answered · {item.requiredCount} required</p>
                                                     </td>
-                                                    <td className="px-4 py-2.5" colSpan={2}>
+                                                    <td className="px-4 py-2.5">
                                                         <div className="space-y-1.5 min-w-[150px]">
                                                             <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${itemMeta.cls}`}>{itemMeta.label}</span>
                                                             <div className="h-1 w-full rounded-full bg-border-card overflow-hidden max-w-[240px]">
@@ -977,9 +1013,48 @@ export function OnboardingTab() {
                                                             </div>
                                                         </div>
                                                     </td>
+                                                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                                                        <button onClick={() => openEditor(item._id)} className="inline-flex items-center gap-1 text-xs font-bold text-brand-primary hover:text-brand-primary-dark">
+                                                            <Edit className="h-3.5 w-3.5" /> Open
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setConfirmRemove({ item, applicantName: row.applicantName })}
+                                                            disabled={removingId === item._id}
+                                                            title={`Remove ${item.formName}`}
+                                                            aria-label={`Remove ${item.formName}`}
+                                                            className="ml-3 text-rose-500 hover:text-rose-400 disabled:opacity-50"
+                                                        >
+                                                            {removingId === item._id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             );
                                         })}
+                                        {expanded && row.invite && (row.invite.requestedQuestionnaires.length > 0 || row.invite.requestedDocuments.length > 0) && (
+                                            <tr className="border-b last:border-0 border-border-card bg-brand-primary-muted/30">
+                                                <td className="px-4 py-3 pl-12" colSpan={3}>
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <Send className="h-3.5 w-3.5 text-brand-primary" />
+                                                            <span className="text-[11px] font-black uppercase tracking-wider text-brand-primary">Requested from staff member</span>
+                                                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase ${row.invite.status === 'active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : row.invite.status === 'revoked' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'ui-card-soft text-text-secondary border-border-card'}`}>Link {row.invite.status}</span>
+                                                            {row.invite.expiresAt && row.invite.status === 'active' && (
+                                                                <span className="text-[10px] text-text-muted">expires {new Date(row.invite.expiresAt).toLocaleDateString()}</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {row.invite.requestedQuestionnaires.map((name, i) => (
+                                                                <span key={`q-${i}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary-muted text-brand-primary border border-brand-primary/15"><ClipboardList className="h-3 w-3" /> {name}</span>
+                                                            ))}
+                                                            {row.invite.requestedDocuments.map((d) => (
+                                                                <span key={`d-${d.key}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20"><FileText className="h-3 w-3" /> {d.label}</span>
+                                                            ))}
+                                                        </div>
+                                                        <button onClick={() => { setManageStaffId(row.staffId); setShowStaffOnboard(true); }} className="text-[11px] font-bold text-brand-primary hover:text-brand-primary-dark">Manage request →</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
                                         </Fragment>
                                         );
                                     })}
@@ -1074,8 +1149,8 @@ export function OnboardingTab() {
                 title="Remove questionnaire?"
                 message={confirmRemove
                     ? confirmRemove.item.answeredCount > 0
-                        ? `Remove "${confirmRemove.item.formName}" from ${confirmRemove.row.applicantName}'s onboarding? ${confirmRemove.item.answeredCount} saved answer${confirmRemove.item.answeredCount === 1 ? '' : 's'} will be deleted.`
-                        : `Remove "${confirmRemove.item.formName}" from ${confirmRemove.row.applicantName}'s onboarding?`
+                        ? `Remove "${confirmRemove.item.formName}" from ${confirmRemove.applicantName}'s onboarding? ${confirmRemove.item.answeredCount} saved answer${confirmRemove.item.answeredCount === 1 ? '' : 's'} will be deleted.`
+                        : `Remove "${confirmRemove.item.formName}" from ${confirmRemove.applicantName}'s onboarding?`
                     : ''}
                 confirmLabel="Remove"
                 busy={!!confirmRemove && removingId === confirmRemove.item._id}
@@ -1240,17 +1315,18 @@ export function OnboardingTab() {
             )}
 
             {/* ── Start-onboarding modal ─────────────────────────────────── */}
-            {startRow && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setStartRow(null)}>
+            {(startRow || startStaffRow) && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setStartRow(null); setStartStaffRow(null); }}>
                     <div className="bg-surface-modal border border-border-modal rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
                         {(() => {
-                            const assignedIds = new Set((startRow.onboarding || []).map((i) => String(i.onboardingFormId)));
+                            const subject = startRow || startStaffRow!;
+                            const assignedIds = new Set((subject.onboarding || []).map((i) => String(i.onboardingFormId)));
                             const available = forms.filter((f) => !assignedIds.has(String(f._id)));
                             return (
                                 <>
                                     <h3 className="font-black text-text-primary">{assignedIds.size > 0 ? 'Add questionnaires' : 'Start onboarding'}</h3>
                                     <p className="text-xs text-text-secondary">
-                                        Choose one or more questionnaires for <strong>{startRow.applicantName}</strong> ({startRow.jobTitle}).
+                                        Choose one or more questionnaires for <strong>{subject.applicantName}</strong>{startRow ? ` (${startRow.jobTitle})` : ''}.
                                         {assignedIds.size > 0 && ` ${assignedIds.size} already assigned.`}
                                     </p>
                                     <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
@@ -1279,10 +1355,10 @@ export function OnboardingTab() {
                                     </div>
                                     {forms.length === 0 && <p className="text-[11px] text-amber-500">No questionnaires yet — create one in the Questionnaires tab first.</p>}
                                     {forms.length > 0 && available.length === 0 && (
-                                        <p className="text-[11px] text-amber-500">Every questionnaire is already assigned to this candidate.</p>
+                                        <p className="text-[11px] text-amber-500">Every questionnaire is already assigned.</p>
                                     )}
                                     <div className="flex justify-end gap-2">
-                                        <button onClick={() => setStartRow(null)} className="px-4 py-2 rounded-xl text-xs font-bold ui-card-soft text-text-secondary">Cancel</button>
+                                        <button onClick={() => { setStartRow(null); setStartStaffRow(null); }} className="px-4 py-2 rounded-xl text-xs font-bold ui-card-soft text-text-secondary">Cancel</button>
                                         <button onClick={handleAssignQuestionnaires} disabled={pickFormIds.length === 0 || starting} className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-60 inline-flex items-center gap-1.5">
                                             {starting
                                                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Assigning…</>
