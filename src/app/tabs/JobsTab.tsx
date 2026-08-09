@@ -20,6 +20,7 @@ interface CustomField {
     required: boolean;
     options?: string[];
     section?: string;
+    description?: string;
 }
 
 const DEFAULT_SECTION = 'Additional questions';
@@ -1946,6 +1947,14 @@ export function JobsTab() {
                                                         placeholder="Question label"
                                                         aria-label="Question label"
                                                         className="w-full text-[13px] font-bold bg-white dark:bg-black/30 border border-slate-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={field.description || ''}
+                                                        onChange={e => handleFieldChange(idx, { description: e.target.value })}
+                                                        placeholder="Description / help text (optional) — shown above the question"
+                                                        aria-label="Question description"
+                                                        className="w-full text-[11px] bg-white dark:bg-black/30 border border-slate-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-slate-600 dark:text-slate-300 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                                                     />
                                                     {(field.type === 'select' || field.type === 'checkbox') && (
                                                         <input

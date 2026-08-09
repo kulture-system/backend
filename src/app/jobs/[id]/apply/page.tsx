@@ -30,6 +30,7 @@ interface CustomField {
     required: boolean;
     options?: string[];
     section?: string;
+    description?: string;
 }
 
 interface JobSection {
@@ -815,6 +816,9 @@ export default function JobApplyPage({ params }: { params: Promise<{ id: string 
                                             </div>
                                         )}
                                     <div className="space-y-2">
+                                        {field.description && field.description.trim() && (
+                                            <p className="text-xs text-text-muted whitespace-pre-line">{field.description}</p>
+                                        )}
                                         <label className="text-xs font-bold text-text-secondary">
                                             {field.label} {field.required && <span className="text-rose-500 font-bold">*</span>}
                                         </label>

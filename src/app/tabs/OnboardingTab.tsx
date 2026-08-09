@@ -22,6 +22,7 @@ interface CustomField {
     required: boolean;
     options?: string[];
     section?: string;
+    description?: string;
 }
 
 interface OnboardingForm {
@@ -967,6 +968,13 @@ export function OnboardingTab() {
                                                     placeholder="Question label"
                                                     aria-label="Question label"
                                                     className="ui-input w-full text-sm font-bold py-1.5"
+                                                />
+                                                <input
+                                                    value={f.description || ''}
+                                                    onChange={(e) => updateField(i, { description: e.target.value })}
+                                                    placeholder="Description / help text (optional) — shown above the question"
+                                                    aria-label="Question description"
+                                                    className="ui-input w-full text-xs py-1.5"
                                                 />
                                                 {(f.type === 'select' || f.type === 'checkbox') && (
                                                     <input

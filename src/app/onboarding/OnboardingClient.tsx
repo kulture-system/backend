@@ -13,7 +13,7 @@ import { requiresFileUpload, sanitizeMetadataValue, metadataInputProps, getDocum
 import type { DocumentType } from "@/models/ApplicationDocument";
 
 type FieldType = 'text' | 'paragraph' | 'number' | 'select' | 'checkbox' | 'file' | 'date';
-interface CustomField { name: string; label: string; type: FieldType; required: boolean; options?: string[]; section?: string; }
+interface CustomField { name: string; label: string; type: FieldType; required: boolean; options?: string[]; section?: string; description?: string; }
 interface Questionnaire { responseId: string; formName: string; status: string; fields: CustomField[]; answers: Record<string, any>; }
 interface Requirement { documentType: string; label: string; required: boolean; requiresFile: boolean; storageMode: 'file' | 'metadata_only'; requiresExpiry: boolean; }
 interface DocRow { _id: string; documentType: string; fileUrl: string; fileName: string; value?: string; status: string; }
@@ -406,6 +406,9 @@ function FieldInput({ field, value, setValue, onFile, fileName, busyKey, fieldEr
     const ek = `${rid}:${field.name}`;
     return (
         <div className="space-y-1.5">
+            {field.description && field.description.trim() && (
+                <p className="text-xs text-text-muted whitespace-pre-line">{field.description}</p>
+            )}
             <label className="text-xs font-bold text-text-secondary">{field.label}{field.required && <span className="text-rose-500 ml-1">*</span>}</label>
             {ftype === 'paragraph' ? (
                 <textarea rows={4} value={value || ''} onChange={(e) => setValue(e.target.value)} className="ui-input w-full text-sm" />
