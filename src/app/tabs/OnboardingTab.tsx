@@ -642,6 +642,7 @@ export function OnboardingTab() {
                     packet={detailStaffRow.onboarding.map((p) => ({ _id: p._id, formName: p.formName, status: p.status }))}
                     requestedDocuments={detailStaffRow.invite?.requestedDocuments || []}
                     documentsUrl={detailStaffRow.recordId ? `/api/admin/onboarding/staff/${detailStaffRow.recordId}/documents` : undefined}
+                    employeeRecordId={detailStaffRow.recordId || undefined}
                     onClose={() => setDetailStaffRow(null)}
                     onViewFile={(url, name) => setViewerFile({ url, name })}
                 />
