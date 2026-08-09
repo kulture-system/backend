@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/mongoose';
+import Staff from '@/models/Staff';
 import EmployeeRecord from '@/models/EmployeeRecord';
 import OnboardingForm from '@/models/OnboardingForm';
 import OnboardingResponse from '@/models/OnboardingResponse';
@@ -20,10 +21,12 @@ async function isAdmin() {
     return role === 'admin' || role === 'superadmin';
 }
 
-// List of STAFF onboarding entries — existing staff (no application) who were
-// invited to onboard. Keyed on the EmployeeRecord: staff invites carry an
-// employeeRecordId and no applicationId. Mirrors the candidates list shape so
-// the Staff sub-tab can render the same table.
+const staffName = (s: any) =>
+    (s.full_name || [s.firstname, s.lastname].filter(Boolean).join(' ').trim() || s.staffid);
+
+// Every staff member, each with their onboarding rolled up (or "not started").
+// The Staff sub-tab mirrors the Candidates tab: it lists ALL staff so onboarding
+// can be started/managed per-row, not just staff who already have an invite.
 // Filters: ?onboardingStatus (not_started|in_progress|completed), ?q, ?page.
 export async function GET(request: Request) {
     try {
@@ -37,22 +40,27 @@ export async function GET(request: Request) {
         const q = (searchParams.get('q') || '').trim();
         const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
 
-        // Staff invites: employeeRecordId set, no applicationId.
-        const invites = await OnboardingInvite.find({ applicationId: null, employeeRecordId: { $ne: null } })
-            .select('employeeRecordId applicantEmail applicantName status expiresAt onboardingFormIds requestedDocumentKeys updatedAt')
-            .sort({ updatedAt: -1 })
+        const staff = await Staff.find({})
+            .select('staffid email firstname lastname full_name')
             .lean();
 
-        const recordIds = Array.from(new Set(invites.map((iv: any) => String(iv.employeeRecordId)).filter(Boolean)));
-        const [records, responses, complianceReqs] = await Promise.all([
-            EmployeeRecord.find({ _id: { $in: recordIds } }).select('staffId email name').lean(),
+        // Resolve each staff member's EmployeeRecord (by staffId) and, through it,
+        // their staff onboarding invite + responses.
+        const staffIds = staff.map((s: any) => String(s.staffid)).filter(Boolean);
+        const records = await EmployeeRecord.find({ staffId: { $in: staffIds } })
+            .select('staffId email name').lean();
+        const recordByStaffId = new Map((records as any[]).map((r) => [String(r.staffId), r]));
+        const recordIds = (records as any[]).map((r) => r._id);
+
+        const [invites, responses, complianceReqs] = await Promise.all([
+            OnboardingInvite.find({ employeeRecordId: { $in: recordIds }, applicationId: null })
+                .select('employeeRecordId status expiresAt requestedDocumentKeys updatedAt').lean(),
             OnboardingResponse.find({ employeeRecordId: { $in: recordIds } })
                 .select('employeeRecordId onboardingFormId formName order status assignee answeredCount totalCount requiredCount completedAt createdAt updatedAt')
-                .sort({ order: 1, createdAt: 1 })
-                .lean(),
+                .sort({ order: 1, createdAt: 1 }).lean(),
             getComplianceRequirements(),
         ]);
-        const recordById = new Map((records as any[]).map((r) => [String(r._id), r]));
+        const inviteByRecord = new Map((invites as any[]).map((iv) => [String(iv.employeeRecordId), iv]));
         const reqLabelByKey = new Map((complianceReqs as any[]).map((r) => [r.key, r.label]));
 
         const formIds = Array.from(new Set(responses.map((r: any) => String(r.onboardingFormId)).filter(Boolean)));
@@ -68,16 +76,17 @@ export async function GET(request: Request) {
             responsesByRecord.get(key)!.push(r);
         }
 
-        let rows = invites.map((iv: any) => {
-            const recordId = String(iv.employeeRecordId);
-            const rec = recordById.get(recordId);
-            const packet = responsesByRecord.get(recordId) || [];
+        let rows = staff.map((s: any) => {
+            const rec = recordByStaffId.get(String(s.staffid));
+            const recordId = rec ? String(rec._id) : null;
+            const packet = recordId ? (responsesByRecord.get(recordId) || []) : [];
+            const iv = recordId ? inviteByRecord.get(recordId) : null;
             const progress = rollUpOnboarding(packet);
             return {
+                staffId: String(s.staffid),
                 recordId,
-                staffId: rec?.staffId || null,
-                applicantName: rec?.name || iv.applicantName || 'Staff member',
-                applicantEmail: rec?.email || iv.applicantEmail || '',
+                applicantName: rec?.name || staffName(s),
+                applicantEmail: rec?.email || s.email || '',
                 onboardingStatus: progress.status,
                 progress,
                 onboarding: packet.map((r: any) => ({
@@ -92,7 +101,7 @@ export async function GET(request: Request) {
                     completedAt: r.completedAt || null,
                     updatedAt: r.updatedAt,
                 })),
-                invite: {
+                invite: iv ? {
                     status: iv.status,
                     expiresAt: iv.expiresAt || null,
                     updatedAt: iv.updatedAt,
@@ -100,7 +109,7 @@ export async function GET(request: Request) {
                         .filter((r: any) => r.assignee === 'applicant')
                         .map((r: any) => formNameById.get(String(r.onboardingFormId)) || r.formName || 'Questionnaire'),
                     requestedDocuments: (iv.requestedDocumentKeys || []).map((k: string) => ({ key: k, label: reqLabelByKey.get(k) || k })),
-                },
+                } : null,
             };
         });
 
@@ -111,6 +120,10 @@ export async function GET(request: Request) {
         if (onboardingStatus === 'not_started' || onboardingStatus === 'in_progress' || onboardingStatus === 'completed') {
             rows = rows.filter((r) => r.onboardingStatus === onboardingStatus);
         }
+
+        // Onboarding-in-progress first, then by name, so active work surfaces.
+        const rank: Record<string, number> = { in_progress: 0, completed: 1, not_started: 2 };
+        rows.sort((a, b) => (rank[a.onboardingStatus] - rank[b.onboardingStatus]) || a.applicantName.localeCompare(b.applicantName));
 
         const total = rows.length;
         const start = (page - 1) * PAGE_SIZE;

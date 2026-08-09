@@ -75,8 +75,8 @@ interface OnboardingRow {
 // A staff-onboarding entry — an existing staff member (no application) invited to
 // onboard. Keyed on their EmployeeRecord instead of an application.
 interface StaffOnboardingRow {
-    recordId: string;
-    staffId: string | null;
+    staffId: string;
+    recordId: string | null;
     applicantName: string;
     applicantEmail: string;
     onboardingStatus: OnboardingStatus;
@@ -622,17 +622,9 @@ export function OnboardingTab() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-black text-text-primary tracking-tight">Onboarding</h2>
-                    <p className="text-sm text-text-muted mt-1">Build onboarding questionnaires and complete them for accepted candidates.</p>
-                </div>
-                <button
-                    onClick={() => { setManageStaffId(null); setShowStaffOnboard(true); }}
-                    className="shrink-0 inline-flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold text-xs px-4 py-2 rounded-xl"
-                >
-                    <UserCheck className="h-4 w-4" /> Onboard existing staff
-                </button>
+            <div>
+                <h2 className="text-2xl font-black text-text-primary tracking-tight">Onboarding</h2>
+                <p className="text-sm text-text-muted mt-1">Build onboarding questionnaires and complete them for accepted candidates and staff.</p>
             </div>
 
             {/* Sub-tabs */}
@@ -897,19 +889,13 @@ export function OnboardingTab() {
                             <Search className="h-4 w-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                             <input value={staffQ} onChange={(e) => setStaffQ(e.target.value)} placeholder="Search name, email, or staff ID" className="ui-input w-full text-xs pl-9" />
                         </div>
-                        <button
-                            onClick={() => { setManageStaffId(null); setShowStaffOnboard(true); }}
-                            className="ml-auto inline-flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold text-xs px-4 py-2 rounded-xl"
-                        >
-                            <UserCheck className="h-4 w-4" /> Onboard staff
-                        </button>
                     </div>
 
                     <div className="crm-panel rounded-2xl overflow-hidden">
                         {loadingStaff ? (
                             <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-primary" /></div>
                         ) : staffRows.length === 0 ? (
-                            <div className="text-center py-16 text-sm text-text-muted">No staff onboarding yet. Use “Onboard staff” to invite an existing staff member.</div>
+                            <div className="text-center py-16 text-sm text-text-muted">No staff match these filters.</div>
                         ) : (
                             <div className="overflow-x-auto">
                             <table className="w-full min-w-[680px] text-sm">
@@ -925,14 +911,15 @@ export function OnboardingTab() {
                                         const meta = STATUS_META[row.onboardingStatus];
                                         const packet = row.onboarding || [];
                                         const progress = row.progress || { done: 0, total: packet.length, percent: 0, answered: 0, answerable: 0, status: row.onboardingStatus };
-                                        const expanded = !!expandedStaff[row.recordId];
+                                        const expanded = !!expandedStaff[row.staffId];
+                                        const hasRequest = !!row.invite && (row.invite.requestedQuestionnaires.length > 0 || row.invite.requestedDocuments.length > 0);
                                         return (
-                                        <Fragment key={row.recordId}>
+                                        <Fragment key={row.staffId}>
                                         <tr className={`border-b border-border-card ${expanded ? '' : 'last:border-0'}`}>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-start gap-2">
                                                     {packet.length > 0 && (
-                                                        <button onClick={() => setExpandedStaff((p) => ({ ...p, [row.recordId]: !p[row.recordId] }))} aria-label="Toggle questionnaires" aria-expanded={expanded} className="mt-0.5 text-text-muted hover:text-text-primary">
+                                                        <button onClick={() => setExpandedStaff((p) => ({ ...p, [row.staffId]: !p[row.staffId] }))} aria-label="Toggle questionnaires" aria-expanded={expanded} className="mt-0.5 text-text-muted hover:text-text-primary">
                                                             {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                                         </button>
                                                     )}
@@ -966,11 +953,10 @@ export function OnboardingTab() {
                                             <td className="px-4 py-3 text-right">
                                                 <button
                                                     onClick={() => { setManageStaffId(row.staffId); setShowStaffOnboard(true); }}
-                                                    disabled={!row.staffId}
-                                                    title="Manage this staff member's onboarding request"
-                                                    className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 disabled:opacity-50"
+                                                    title={hasRequest ? "Manage this staff member's onboarding" : 'Start onboarding for this staff member'}
+                                                    className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${hasRequest ? 'border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10' : 'bg-brand-primary text-white hover:bg-brand-primary-dark'}`}
                                                 >
-                                                    <Send className="h-3.5 w-3.5" /> Manage
+                                                    <Send className="h-3.5 w-3.5" /> {hasRequest ? 'Manage' : 'Onboard'}
                                                 </button>
                                             </td>
                                         </tr>
