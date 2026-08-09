@@ -578,7 +578,7 @@ export default function TrackApplicationDetailsPage({ params }: { params: Promis
                   {fields.map((field) => {
                     const ftype = resolveFieldType(field);
                     return (
-                    <div key={field.name} className="space-y-2">
+                    <div key={field.name} className={`space-y-2${field.description && field.description.trim() ? ' border border-border-card rounded-xl p-4' : ''}`}>
                       {field.description && field.description.trim() && (
                         <p className="text-xs text-text-muted whitespace-pre-line">{field.description}</p>
                       )}

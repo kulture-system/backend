@@ -405,7 +405,7 @@ function FieldInput({ field, value, setValue, onFile, fileName, busyKey, fieldEr
     const ftype = resolveFieldType(field);
     const ek = `${rid}:${field.name}`;
     return (
-        <div className="space-y-1.5">
+        <div className={`space-y-1.5${field.description && field.description.trim() ? ' border border-border-card rounded-xl p-4' : ''}`}>
             {field.description && field.description.trim() && (
                 <p className="text-xs text-text-muted whitespace-pre-line">{field.description}</p>
             )}

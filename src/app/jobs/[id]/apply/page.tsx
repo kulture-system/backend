@@ -815,7 +815,7 @@ export default function JobApplyPage({ params }: { params: Promise<{ id: string 
                                                 <h3 className="text-sm font-black uppercase text-brand-primary tracking-widest">{__sec}</h3>
                                             </div>
                                         )}
-                                    <div className="space-y-2">
+                                    <div className={`space-y-2${field.description && field.description.trim() ? ' border border-border-card rounded-xl p-4' : ''}`}>
                                         {field.description && field.description.trim() && (
                                             <p className="text-xs text-text-muted whitespace-pre-line">{field.description}</p>
                                         )}
