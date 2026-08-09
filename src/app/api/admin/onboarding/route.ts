@@ -8,6 +8,7 @@ import OnboardingForm from '@/models/OnboardingForm';
 import OnboardingResponse from '@/models/OnboardingResponse';
 import OnboardingInvite from '@/models/OnboardingInvite';
 import Staff from '@/models/Staff';
+import EmployeeRecord from '@/models/EmployeeRecord';
 import { rollUpOnboarding } from '@/lib/onboardingProgress';
 import { getComplianceRequirements } from '@/lib/compliance';
 import { resolveEmployeeRecordIdByEmail, resolveEmployeeRecordByStaff } from '@/lib/employeeRecord';
@@ -44,6 +45,13 @@ export async function GET(request: Request) {
             const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             filter.$or = [{ applicantName: rx }, { applicantEmail: rx }];
         }
+
+        // Exclude people who are now STAFF — they belong in the Staff tab, where
+        // their full onboarding history (including from when they were a candidate)
+        // is shown via their EmployeeRecord. A record with a staffId = they're staff.
+        const staffRecords = await EmployeeRecord.find({ staffId: { $type: 'string' } }).select('applicationIds').lean();
+        const excludedAppIds = staffRecords.flatMap((r: any) => (r.applicationIds || []).map((id: any) => String(id)));
+        if (excludedAppIds.length) filter._id = { $nin: excludedAppIds };
 
         const applications = await JobApplication.find(filter)
             .select('applicantName applicantEmail jobId status createdAt updatedAt')

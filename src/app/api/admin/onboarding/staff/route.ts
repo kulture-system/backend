@@ -53,14 +53,18 @@ export async function GET(request: Request) {
         const recordIds = (records as any[]).map((r) => r._id);
 
         const [invites, responses, complianceReqs] = await Promise.all([
-            OnboardingInvite.find({ employeeRecordId: { $in: recordIds }, applicationId: null })
-                .select('employeeRecordId status expiresAt requestedDocumentKeys updatedAt').lean(),
+            // ANY invite for the person (candidate-era or staff-era), most recent first —
+            // so a hired candidate's onboarding request still shows under Staff.
+            OnboardingInvite.find({ employeeRecordId: { $in: recordIds } })
+                .select('employeeRecordId status expiresAt requestedDocumentKeys updatedAt').sort({ updatedAt: -1 }).lean(),
             OnboardingResponse.find({ employeeRecordId: { $in: recordIds } })
                 .select('employeeRecordId onboardingFormId formName order status assignee answeredCount totalCount requiredCount completedAt createdAt updatedAt')
                 .sort({ order: 1, createdAt: 1 }).lean(),
             getComplianceRequirements(),
         ]);
-        const inviteByRecord = new Map((invites as any[]).map((iv) => [String(iv.employeeRecordId), iv]));
+        // First per record = most recent invite.
+        const inviteByRecord = new Map<string, any>();
+        for (const iv of invites as any[]) { const k = String(iv.employeeRecordId); if (!inviteByRecord.has(k)) inviteByRecord.set(k, iv); }
         const reqLabelByKey = new Map((complianceReqs as any[]).map((r) => [r.key, r.label]));
 
         const formIds = Array.from(new Set(responses.map((r: any) => String(r.onboardingFormId)).filter(Boolean)));
