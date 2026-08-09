@@ -72,6 +72,19 @@ interface OnboardingRow {
     invite?: InviteSummary | null;
 }
 
+// A staff-onboarding entry — an existing staff member (no application) invited to
+// onboard. Keyed on their EmployeeRecord instead of an application.
+interface StaffOnboardingRow {
+    recordId: string;
+    staffId: string | null;
+    applicantName: string;
+    applicantEmail: string;
+    onboardingStatus: OnboardingStatus;
+    progress: OnboardingRow['progress'];
+    onboarding: PacketItem[];
+    invite?: InviteSummary | null;
+}
+
 const DEFAULT_SECTION = 'Onboarding questions';
 const normalizeFieldKey = (v: string) =>
     v.toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
@@ -93,7 +106,7 @@ const FIELD_TYPE_OPTIONS: { value: FieldType; label: string }[] = [
 ];
 
 export function OnboardingTab() {
-    const [subTab, setSubTab] = useState<'candidates' | 'questionnaires' | 'library'>('candidates');
+    const [subTab, setSubTab] = useState<'candidates' | 'staff' | 'questionnaires' | 'library'>('candidates');
     // Candidate the admin is composing an onboarding request for.
     const [requestRow, setRequestRow] = useState<OnboardingRow | null>(null);
     const [showStaffOnboard, setShowStaffOnboard] = useState(false);
@@ -133,6 +146,17 @@ export function OnboardingTab() {
     const [total, setTotal] = useState(0);
     const [jobOptions, setJobOptions] = useState<{ _id: string; title: string }[]>([]);
     const pageSize = 20;
+
+    // ── Staff onboarding list ─────────────────────────────────────────────
+    const [staffRows, setStaffRows] = useState<StaffOnboardingRow[]>([]);
+    const [loadingStaff, setLoadingStaff] = useState(false);
+    const [staffStatusFilter, setStaffStatusFilter] = useState<'' | OnboardingStatus>('');
+    const [staffQ, setStaffQ] = useState('');
+    const [staffPage, setStaffPage] = useState(1);
+    const [staffTotal, setStaffTotal] = useState(0);
+    const [expandedStaff, setExpandedStaff] = useState<Record<string, boolean>>({});
+    // staffId to preselect when opening the onboard/manage modal (null = new).
+    const [manageStaffId, setManageStaffId] = useState<string | null>(null);
 
     // ── Assign-questionnaires modal ───────────────────────────────────────
     const [startRow, setStartRow] = useState<OnboardingRow | null>(null);
@@ -198,11 +222,34 @@ export function OnboardingTab() {
         }
     };
 
+    const fetchStaffRows = async () => {
+        setLoadingStaff(true);
+        try {
+            const params = new URLSearchParams();
+            if (staffStatusFilter) params.set('onboardingStatus', staffStatusFilter);
+            if (staffQ.trim()) params.set('q', staffQ.trim());
+            params.set('page', String(staffPage));
+            const res = await fetch(`/api/admin/onboarding/staff?${params.toString()}`);
+            const data = await res.json();
+            setStaffRows(Array.isArray(data?.data) ? data.data : []);
+            setStaffTotal(typeof data?.total === 'number' ? data.total : 0);
+        } catch {
+            setStaffRows([]);
+            setStaffTotal(0);
+        } finally {
+            setLoadingStaff(false);
+        }
+    };
+
     useEffect(() => { void fetchForms(); void fetchJobs(); }, []);
     useEffect(() => {
         if (subTab === 'candidates') void fetchRows();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [subTab, statusFilter, jobFilter, page]);
+    useEffect(() => {
+        if (subTab === 'staff') void fetchStaffRows();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [subTab, staffStatusFilter, staffPage]);
 
     // Debounced search
     useEffect(() => {
@@ -211,6 +258,12 @@ export function OnboardingTab() {
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [q]);
+    useEffect(() => {
+        if (subTab !== 'staff') return;
+        const t = setTimeout(() => { setStaffPage(1); void fetchStaffRows(); }, 350);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [staffQ]);
 
     useEffect(() => {
         if (!viewerFile) return;
@@ -575,7 +628,7 @@ export function OnboardingTab() {
                     <p className="text-sm text-text-muted mt-1">Build onboarding questionnaires and complete them for accepted candidates.</p>
                 </div>
                 <button
-                    onClick={() => setShowStaffOnboard(true)}
+                    onClick={() => { setManageStaffId(null); setShowStaffOnboard(true); }}
                     className="shrink-0 inline-flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold text-xs px-4 py-2 rounded-xl"
                 >
                     <UserCheck className="h-4 w-4" /> Onboard existing staff
@@ -586,6 +639,7 @@ export function OnboardingTab() {
             <div className="flex items-center gap-2">
                 {([
                     { id: 'candidates' as const, label: 'Candidates', icon: UserCheck },
+                    { id: 'staff' as const, label: 'Staff', icon: UserCheck },
                     { id: 'questionnaires' as const, label: 'Questionnaires', icon: ClipboardList },
                     { id: 'library' as const, label: 'Downloadable Forms', icon: Download },
                 ]).map((t) => {
@@ -819,6 +873,146 @@ export function OnboardingTab() {
                 </div>
             )}
 
+            {/* ── Staff onboarding ───────────────────────────────────────── */}
+            {subTab === 'staff' && (
+                <div className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1">
+                            {([
+                                { v: '' as const, label: 'All' },
+                                { v: 'not_started' as const, label: 'Not started' },
+                                { v: 'in_progress' as const, label: 'In progress' },
+                                { v: 'completed' as const, label: 'Completed' },
+                            ]).map((s) => (
+                                <button
+                                    key={s.label}
+                                    onClick={() => { setStaffStatusFilter(s.v); setStaffPage(1); }}
+                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${staffStatusFilter === s.v ? 'bg-brand-primary text-white border-brand-primary' : 'ui-card-soft text-text-secondary'}`}
+                                >
+                                    {s.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="relative flex-1 min-w-[180px] max-w-xs">
+                            <Search className="h-4 w-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input value={staffQ} onChange={(e) => setStaffQ(e.target.value)} placeholder="Search name, email, or staff ID" className="ui-input w-full text-xs pl-9" />
+                        </div>
+                        <button
+                            onClick={() => { setManageStaffId(null); setShowStaffOnboard(true); }}
+                            className="ml-auto inline-flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold text-xs px-4 py-2 rounded-xl"
+                        >
+                            <UserCheck className="h-4 w-4" /> Onboard staff
+                        </button>
+                    </div>
+
+                    <div className="crm-panel rounded-2xl overflow-hidden">
+                        {loadingStaff ? (
+                            <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-primary" /></div>
+                        ) : staffRows.length === 0 ? (
+                            <div className="text-center py-16 text-sm text-text-muted">No staff onboarding yet. Use “Onboard staff” to invite an existing staff member.</div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                            <table className="w-full min-w-[680px] text-sm">
+                                <thead>
+                                    <tr className="text-[10px] uppercase tracking-wider text-text-muted border-b border-border-card">
+                                        <th className="text-left font-bold px-4 py-3">Staff member</th>
+                                        <th className="text-left font-bold px-4 py-3">Onboarding</th>
+                                        <th className="text-right font-bold px-4 py-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {staffRows.map((row) => {
+                                        const meta = STATUS_META[row.onboardingStatus];
+                                        const packet = row.onboarding || [];
+                                        const progress = row.progress || { done: 0, total: packet.length, percent: 0, answered: 0, answerable: 0, status: row.onboardingStatus };
+                                        const expanded = !!expandedStaff[row.recordId];
+                                        return (
+                                        <Fragment key={row.recordId}>
+                                        <tr className={`border-b border-border-card ${expanded ? '' : 'last:border-0'}`}>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-start gap-2">
+                                                    {packet.length > 0 && (
+                                                        <button onClick={() => setExpandedStaff((p) => ({ ...p, [row.recordId]: !p[row.recordId] }))} aria-label="Toggle questionnaires" aria-expanded={expanded} className="mt-0.5 text-text-muted hover:text-text-primary">
+                                                            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                                        </button>
+                                                    )}
+                                                    <div className={packet.length === 0 ? 'pl-6' : ''}>
+                                                        <p className="font-bold text-text-primary">{row.applicantName}</p>
+                                                        <p className="text-[11px] text-text-muted">{row.applicantEmail}{row.staffId ? ` · #${row.staffId}` : ''}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="space-y-1.5 min-w-[150px]">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${meta.cls}`}>{meta.label}</span>
+                                                        {packet.length > 0 && <span className="text-[11px] font-bold text-text-muted">{progress.done}/{progress.total} questionnaire{progress.total === 1 ? '' : 's'}</span>}
+                                                        {row.invite && (
+                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase ${row.invite.status === 'active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : row.invite.status === 'revoked' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'ui-card-soft text-text-secondary border-border-card'}`}>
+                                                                <Send className="h-2.5 w-2.5" /> Link {row.invite.status}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {packet.length > 0 && (
+                                                        <>
+                                                            <div className="h-1.5 w-full rounded-full bg-border-card overflow-hidden max-w-[280px]">
+                                                                <div className={`h-full rounded-full transition-all ${progress.percent === 100 ? 'bg-emerald-500' : 'bg-brand-primary'}`} style={{ width: `${Math.min(100, Math.max(0, progress.percent))}%` }} />
+                                                            </div>
+                                                            <p className="text-[10px] text-text-muted">{progress.answered}/{progress.answerable} questions answered</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button
+                                                    onClick={() => { setManageStaffId(row.staffId); setShowStaffOnboard(true); }}
+                                                    disabled={!row.staffId}
+                                                    title="Manage this staff member's onboarding request"
+                                                    className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 disabled:opacity-50"
+                                                >
+                                                    <Send className="h-3.5 w-3.5" /> Manage
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {expanded && packet.map((item) => {
+                                            const itemMeta = STATUS_META[item.status === 'completed' ? 'completed' : 'in_progress'];
+                                            const itemPct = item.status === 'completed' ? 100 : item.totalCount > 0 ? Math.round((item.answeredCount / item.totalCount) * 100) : 0;
+                                            return (
+                                                <tr key={item._id} className="border-b last:border-0 border-border-card bg-surface-card/40">
+                                                    <td className="px-4 py-2.5 pl-12">
+                                                        <p className="text-sm font-semibold text-text-primary">{item.formName}</p>
+                                                        <p className="text-[10px] text-text-muted">{item.answeredCount}/{item.totalCount} answered · {item.requiredCount} required</p>
+                                                    </td>
+                                                    <td className="px-4 py-2.5" colSpan={2}>
+                                                        <div className="space-y-1.5 min-w-[150px]">
+                                                            <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${itemMeta.cls}`}>{itemMeta.label}</span>
+                                                            <div className="h-1 w-full rounded-full bg-border-card overflow-hidden max-w-[240px]">
+                                                                <div className={`h-full rounded-full ${itemPct === 100 ? 'bg-emerald-500' : 'bg-brand-primary'}`} style={{ width: `${Math.min(100, Math.max(0, itemPct))}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        </Fragment>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            </div>
+                        )}
+                    </div>
+
+                    {Math.ceil(staffTotal / pageSize) > 1 && (
+                        <div className="flex justify-center items-center gap-2">
+                            <button onClick={() => setStaffPage((p) => Math.max(1, p - 1))} disabled={staffPage === 1} className="p-2 rounded-lg ui-card-soft disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button>
+                            <span className="text-xs font-bold text-text-muted">Page {staffPage} / {Math.max(1, Math.ceil(staffTotal / pageSize))}</span>
+                            <button onClick={() => setStaffPage((p) => Math.min(Math.max(1, Math.ceil(staffTotal / pageSize)), p + 1))} disabled={staffPage >= Math.ceil(staffTotal / pageSize)} className="p-2 rounded-lg ui-card-soft disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* ── Questionnaires ─────────────────────────────────────────── */}
             {subTab === 'questionnaires' && (
                 <div className="space-y-4">
@@ -873,8 +1067,9 @@ export function OnboardingTab() {
             {showStaffOnboard && (
                 <StaffOnboardingModal
                     forms={forms}
-                    onClose={() => setShowStaffOnboard(false)}
-                    onChanged={() => void fetchRows()}
+                    preselectStaffId={manageStaffId || undefined}
+                    onClose={() => { setShowStaffOnboard(false); setManageStaffId(null); }}
+                    onChanged={() => { void fetchStaffRows(); }}
                 />
             )}
 
