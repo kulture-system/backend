@@ -63,11 +63,13 @@ export async function resolveRequestedRequirements(keys: string[]): Promise<Requ
     return out;
 }
 
-export function inviteValidity(invite: any): { valid: boolean; reason?: 'missing' | 'revoked' | 'expired' } {
+export function inviteValidity(invite: any): { valid: boolean; reason?: 'missing' | 'revoked' | 'expired' | 'completed' } {
     if (!invite) return { valid: false, reason: 'missing' };
     if (invite.status === 'revoked') return { valid: false, reason: 'revoked' };
+    // Onboarding is done — retire the link so it can't be re-opened/edited.
+    if (invite.status === 'completed') return { valid: false, reason: 'completed' };
     if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) return { valid: false, reason: 'expired' };
-    if (invite.status !== 'active' && invite.status !== 'completed') return { valid: false, reason: 'expired' };
+    if (invite.status !== 'active') return { valid: false, reason: 'expired' };
     return { valid: true };
 }
 

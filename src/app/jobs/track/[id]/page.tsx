@@ -77,6 +77,7 @@ interface TrackPayload {
     notes: Array<{ author: string; text: string; createdAt: string }>;
     createdAt: string;
     updatedAt: string;
+    acceptedAt?: string | null;
   };
   job: {
     _id?: string;
@@ -515,11 +516,23 @@ export default function TrackApplicationDetailsPage({ params }: { params: Promis
       <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
         {pageError && (<div className="mb-4 p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4" />{pageError}</div>)}
         {saveMessage && (<div className="mb-4 p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 text-sm flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />{saveMessage}</div>)}
-        {!canEdit && (<div className="mb-4 p-3.5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-sm flex items-center gap-2"><Lock className="h-4 w-4" /> This application is read-only until our team requests changes.</div>)}
+        {!canEdit && payload.application.status !== 'accepted' && (<div className="mb-4 p-3.5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-sm flex items-center gap-2"><Lock className="h-4 w-4" /> This application is read-only until our team requests changes.</div>)}
 
         <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 lg:gap-8 items-start">
-          {/* Main content — all sections visible, as on the application form */}
+          {/* Main content. Once accepted, the application details are retired —
+              we just confirm acceptance with the date/time. */}
           <div className="space-y-6">
+            {payload.application.status === 'accepted' ? (
+            <section className="bg-surface-card border border-border-card rounded-2xl p-8 shadow-sm text-center space-y-3">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center"><CheckCircle2 className="h-7 w-7 text-emerald-500" /></div>
+              <h2 className="text-lg font-black text-text-primary">Application accepted</h2>
+              <p className="text-sm text-text-secondary">
+                Your application for <strong className="text-text-primary">{payload.job.title}</strong> was accepted
+                {(payload.application.acceptedAt || payload.application.updatedAt) ? ` on ${new Date(payload.application.acceptedAt || payload.application.updatedAt).toLocaleString()}` : ''}.
+              </p>
+              <p className="text-xs text-text-muted">We&apos;ll be in touch with next steps. If onboarding is required, you&apos;ll receive a secure link by email.</p>
+            </section>
+            ) : (<>
             <section className="bg-surface-card border border-border-card rounded-2xl p-6 shadow-sm space-y-4">
               <h2 className="text-sm font-black uppercase tracking-widest text-brand-primary">Applicant profile</h2>
 
@@ -865,6 +878,7 @@ export default function TrackApplicationDetailsPage({ params }: { params: Promis
                 })}
               </div>
             </section>
+            </>)}
           </div>
 
           {/* Sidebar — notes always visible, plus resources and actions. */}
@@ -913,10 +927,12 @@ export default function TrackApplicationDetailsPage({ params }: { params: Promis
                   {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save updates
                 </button>
               )}
-              <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={isDeleting}
-                className="w-full border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 disabled:opacity-60 font-bold text-sm py-3 rounded-xl flex items-center justify-center gap-2">
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Delete application
-              </button>
+              {payload.application.status !== 'accepted' && (
+                <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={isDeleting}
+                  className="w-full border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 disabled:opacity-60 font-bold text-sm py-3 rounded-xl flex items-center justify-center gap-2">
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Delete application
+                </button>
+              )}
               <Link href="/jobs/track" className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-text-primary">
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to tracking
               </Link>

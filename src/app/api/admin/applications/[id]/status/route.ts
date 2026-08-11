@@ -60,6 +60,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const reviewerName = (session?.user as any)?.name || session?.user?.email || 'Reviewer';
 
         const update: any = { $set: { status } };
+        // Stamp when the application was accepted (shown on the applicant tracker).
+        if (status === 'accepted') update.$set.acceptedAt = new Date();
         if (note) {
             update.$push = { notes: { author: reviewerName, text: note, createdAt: new Date() } };
         }

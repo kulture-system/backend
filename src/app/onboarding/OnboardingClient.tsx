@@ -21,7 +21,7 @@ interface Resource { _id: string; title: string; description: string; category: 
 
 interface Payload {
     valid: boolean;
-    reason?: 'missing' | 'revoked' | 'expired';
+    reason?: 'missing' | 'revoked' | 'expired' | 'completed';
     applicantName?: string;
     jobTitle?: string;
     expiresAt?: string;
@@ -212,6 +212,24 @@ export default function OnboardingClient({ trackApiBase }: { trackApiBase: strin
             <div className="min-h-screen bg-background text-foreground flex flex-col">
                 <PublicHeader label="Onboarding" showLogin={false} />
                 <div className="flex-1 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-brand-primary" /></div>
+            </div>
+        );
+    }
+    // Onboarding already completed — the link is retired; show a positive done state.
+    if (payload && !payload.valid && payload.reason === 'completed') {
+        return (
+            <div className="min-h-screen bg-background text-foreground flex flex-col">
+                <PublicHeader label="Onboarding" showLogin={false} />
+                <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="max-w-md w-full bg-surface-card border border-border-card rounded-3xl p-8 text-center space-y-4 shadow-xl">
+                        <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center"><CheckCircle2 className="h-8 w-8 text-emerald-500" /></div>
+                        <div className="space-y-1.5">
+                            <h1 className="text-xl font-black text-text-primary">Onboarding complete</h1>
+                            <p className="text-sm text-text-secondary">Thank you{payload.applicantName ? `, ${payload.applicantName.split(' ')[0]}` : ''}! Your onboarding has been submitted and this link is now closed. Our team will reach out with next steps.</p>
+                        </div>
+                        <Link href="/jobs" className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-primary hover:text-brand-primary-dark pt-1">Careers <ArrowLeft className="h-3.5 w-3.5 rotate-180" /></Link>
+                    </div>
+                </div>
             </div>
         );
     }
