@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, X, Eye, ClipboardList, ShieldCheck, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Loader2, X, Eye, ClipboardList, ShieldCheck, CheckCircle2, ArrowLeft, Upload } from "lucide-react";
 import { resolveFieldType, toDateInputValue } from "@/lib/formFields";
 import { getDocumentLabel, usesMetadataOnlyStorage } from "@/lib/documentMetadata";
 import type { DocumentType } from "@/models/ApplicationDocument";
@@ -20,6 +20,12 @@ interface Props {
     // The compliance documents the onboarding request asked for — the Documents
     // section is scoped to these, so application-time docs aren't shown here.
     requestedDocuments: RequestedDoc[];
+    // Override the documents endpoint — used for a STAFF subject, whose documents
+    // are keyed by EmployeeRecord (defaults to the application's documents URL).
+    documentsUrl?: string;
+    // Owner for admin document uploads. For a staff subject pass employeeRecordId;
+    // otherwise applicationId is used.
+    employeeRecordId?: string;
     onClose: () => void;
     onViewFile: (url: string, name: string) => void;
 }
@@ -40,12 +46,70 @@ type Section =
 // Read-only review of a candidate's onboarding submission, laid out like the
 // applicant page (section rail + content). Renders inline in the dashboard so the
 // left menu stays. Files stream through the admin proxy (never the raw URL).
-export function CandidateOnboardingDetail({ applicationId, applicantName, jobTitle, packet, requestedDocuments, onClose, onViewFile }: Props) {
+export function CandidateOnboardingDetail({ applicationId, applicantName, jobTitle, packet, requestedDocuments, documentsUrl, employeeRecordId, onClose, onViewFile }: Props) {
     const [loading, setLoading] = useState(true);
     const [questionnaires, setQuestionnaires] = useState<LoadedQuestionnaire[]>([]);
     const [documents, setDocuments] = useState<DocRow[]>([]);
     const [error, setError] = useState('');
     const [active, setActive] = useState(0);
+    // Admin upload state, keyed by documentType.
+    const [docBusy, setDocBusy] = useState<string>('');
+    const [docError, setDocError] = useState('');
+    const [metaVal, setMetaVal] = useState<Record<string, string>>({});
+    // Full compliance catalog + admin-added document types (so an admin can upload
+    // any document, not just the ones the onboarding requested).
+    const [requirements, setRequirements] = useState<{ key: string; label: string; evidenceMode?: string }[]>([]);
+    const [extraTypes, setExtraTypes] = useState<string[]>([]);
+    const [addType, setAddType] = useState('');
+
+    const docsUrl = documentsUrl || `/api/applications/${applicationId}/documents`;
+
+    const reloadDocuments = async () => {
+        try {
+            const r = await fetch(docsUrl);
+            const d = await r.json();
+            setDocuments(Array.isArray(d?.documents) ? d.documents : []);
+        } catch { /* ignore */ }
+    };
+
+    // Admin uploads/records a document ON BEHALF OF the person (they emailed it in).
+    const saveDocument = async (documentType: string, payload: { fileUrl?: string; fileName?: string; value?: string }) => {
+        setDocError('');
+        const target = employeeRecordId ? { employeeRecordId } : { applicationId };
+        const res = await fetch('/api/admin/onboarding/documents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...target, documentType, ...payload }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setDocError(data?.error || 'Could not save the document.'); return; }
+        await reloadDocuments();
+    };
+
+    const onAdminUpload = async (documentType: string, file: File | null) => {
+        if (!file) return;
+        setDocBusy(documentType); setDocError('');
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('source', 'admin');
+            fd.append('usageType', 'supporting_document');
+            const up = await fetch('/api/upload', { method: 'POST', body: fd });
+            const upData = await up.json();
+            if (!up.ok || !upData?.url) { setDocError(upData?.error || 'Upload failed.'); return; }
+            await saveDocument(documentType, { fileUrl: upData.url, fileName: file.name });
+        } finally {
+            setDocBusy('');
+        }
+    };
+
+    const onAdminSaveValue = async (documentType: string) => {
+        const v = (metaVal[documentType] || '').trim();
+        if (!v) return;
+        setDocBusy(documentType);
+        try { await saveDocument(documentType, { value: v }); }
+        finally { setDocBusy(''); }
+    };
 
     useEffect(() => {
         (async () => {
@@ -62,7 +126,7 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                             answers: data?.response?.answers || {},
                         } as LoadedQuestionnaire;
                     })),
-                    fetch(`/api/applications/${applicationId}/documents`).then((r) => r.json()).catch(() => ({ documents: [] })),
+                    fetch(docsUrl).then((r) => r.json()).catch(() => ({ documents: [] })),
                 ]);
                 setQuestionnaires(qResults);
                 setDocuments(Array.isArray(docRes?.documents) ? docRes.documents : []);
@@ -72,11 +136,43 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                 setLoading(false);
             }
         })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [applicationId, packet]);
 
-    // Only the docs the onboarding requested — matched to what was submitted.
+    // Load the compliance catalog so the admin can attach any document type.
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await fetch('/api/admin/compliance/requirements');
+                const d = await r.json();
+                const active = (Array.isArray(d?.requirements) ? d.requirements : []).filter((x: any) => x.active !== false);
+                setRequirements(active.map((x: any) => ({ key: x.key, label: x.label, evidenceMode: x.evidenceMode })));
+            } catch { /* ignore — the requested docs still render */ }
+        })();
+    }, []);
+
     const docByType = useMemo(() => new Map(documents.map((d) => [d.documentType, d])), [documents]);
-    const hasDocsSection = requestedDocuments.length > 0;
+    const reqLabelByKey = useMemo(() => new Map(requirements.map((r) => [r.key, r.label])), [requirements]);
+
+    // The document rows to show: requested docs, plus anything already submitted,
+    // plus any type the admin added — so uploads work even with nothing requested.
+    const docRows = useMemo(() => {
+        const seen = new Set<string>();
+        const rows: { key: string; label: string }[] = [];
+        const add = (key: string, label?: string) => {
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            rows.push({ key, label: label || reqLabelByKey.get(key) || getDocumentLabel(key as DocumentType) });
+        };
+        requestedDocuments.forEach((r) => add(r.key, r.label));
+        documents.forEach((d) => add(d.documentType));
+        extraTypes.forEach((k) => add(k));
+        return rows;
+    }, [requestedDocuments, documents, extraTypes, reqLabelByKey]);
+
+    // Always offer a Documents section so an admin can attach files on the
+    // person's behalf even when the onboarding didn't request any.
+    const hasDocsSection = true;
 
     const sections: Section[] = useMemo(() => {
         const s: Section[] = questionnaires.map((q) => ({ kind: 'questionnaire' as const, q, label: q.formName }));
@@ -178,12 +274,16 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                         ) : current?.kind === 'documents' ? (
                             <div className="space-y-4">
                                 <h3 className="text-sm font-black uppercase tracking-widest text-brand-primary">Documents</h3>
+                                <p className="text-[11px] text-text-muted">You can upload a document on the person’s behalf (e.g. they emailed it in). Uploaded files are marked pending for review.</p>
+                                {docError && <p className="text-xs text-rose-500">{docError}</p>}
                                 <div className="space-y-2">
-                                    {requestedDocuments.map((r) => {
+                                    {docRows.length === 0 && <p className="text-xs text-text-muted italic">No documents yet — add one below to upload it.</p>}
+                                    {docRows.map((r) => {
                                         const doc = docByType.get(r.key);
                                         const isMeta = usesMetadataOnlyStorage(r.key as DocumentType);
+                                        const busy = docBusy === r.key;
                                         return (
-                                            <div key={r.key} className="border border-border-card rounded-xl p-4 flex items-center justify-between gap-3">
+                                            <div key={r.key} className="border border-border-card rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="text-sm font-bold text-text-primary">{r.label || getDocumentLabel(r.key as DocumentType)}</span>
@@ -191,18 +291,55 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                                                     </div>
                                                     {doc?.expiryDate && <p className="text-[10px] text-text-muted mt-0.5">Expires {new Date(doc.expiryDate).toLocaleDateString()}</p>}
                                                     {doc?.status === 'rejected' && doc.rejectionReason && <p className="text-[10px] text-rose-500 mt-0.5">Reason: {doc.rejectionReason}</p>}
+                                                    {!doc?.fileUrl && !(isMeta && doc?.value) && <p className="text-[10px] text-text-muted italic mt-0.5">Not provided yet</p>}
                                                 </div>
-                                                {doc?.fileUrl ? (
-                                                    <button type="button" onClick={() => viewFile(doc.fileUrl, doc.fileName || (r.label || getDocumentLabel(r.key as DocumentType)))} className="shrink-0 text-sm font-semibold text-brand-primary inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View</button>
-                                                ) : isMeta && doc?.value ? (
-                                                    <span className="shrink-0 text-sm font-bold text-text-primary">{doc.value}</span>
-                                                ) : (
-                                                    <span className="shrink-0 text-xs text-text-muted italic">Not provided</span>
-                                                )}
+                                                <div className="shrink-0 flex items-center gap-3">
+                                                    {doc?.fileUrl && (
+                                                        <button type="button" onClick={() => viewFile(doc.fileUrl, doc.fileName || (r.label || getDocumentLabel(r.key as DocumentType)))} className="text-sm font-semibold text-brand-primary inline-flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> View</button>
+                                                    )}
+                                                    {isMeta ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <input
+                                                                value={metaVal[r.key] ?? (doc?.value || '')}
+                                                                onChange={(e) => setMetaVal((p) => ({ ...p, [r.key]: e.target.value }))}
+                                                                placeholder="Enter value"
+                                                                className="ui-input text-xs w-36 py-1.5"
+                                                            />
+                                                            <button type="button" onClick={() => onAdminSaveValue(r.key)} disabled={busy} className="text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 disabled:opacity-60 inline-flex items-center gap-1">
+                                                                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Save
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <label className={`text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 cursor-pointer inline-flex items-center gap-1.5 ${busy ? 'opacity-60 pointer-events-none' : ''}`}>
+                                                            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />} {doc?.fileUrl ? 'Replace' : 'Upload'}
+                                                            <input type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt" onChange={(e) => onAdminUpload(r.key, e.target.files?.[0] || null)} />
+                                                        </label>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
                                 </div>
+                                {(() => {
+                                    const available = requirements.filter((req) => !docRows.some((d) => d.key === req.key));
+                                    if (available.length === 0) return null;
+                                    return (
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <select value={addType} onChange={(e) => setAddType(e.target.value)} className="ui-input text-xs flex-1 py-1.5">
+                                                <option value="">Add another document…</option>
+                                                {available.map((req) => <option key={req.key} value={req.key}>{req.label}</option>)}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => { if (addType) { setExtraTypes((p) => [...p, addType]); setAddType(''); } }}
+                                                disabled={!addType}
+                                                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 disabled:opacity-50"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         ) : null}
                     </div>

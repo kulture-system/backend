@@ -11,6 +11,9 @@ interface InviteState { status: string; expiresAt?: string; onboardingFormIds?: 
 
 interface Props {
     forms: FormOption[];
+    // When set, the modal opens with this staff member already selected (manage
+    // an existing invite) instead of the picker.
+    preselectStaffId?: string;
     onClose: () => void;
     onChanged?: () => void;
 }
@@ -21,7 +24,7 @@ const staffLabel = (s: StaffOption) =>
 // Admin action (Phase 3): onboard an EXISTING staff member who has no
 // application — pick the staff member, confirm/collect an email, choose
 // questionnaires + compliance documents, and generate an expiring link.
-export function StaffOnboardingModal({ forms, onClose, onChanged }: Props) {
+export function StaffOnboardingModal({ forms, preselectStaffId, onClose, onChanged }: Props) {
     const [staff, setStaff] = useState<StaffOption[]>([]);
     const [requirements, setRequirements] = useState<RequirementOption[]>([]);
     const [loading, setLoading] = useState(true);
@@ -92,6 +95,14 @@ export function StaffOnboardingModal({ forms, onClose, onChanged }: Props) {
             }
         } catch { /* ignore — modal still works for a fresh invite */ }
     };
+
+    // Manage mode: auto-select the staff member once the list has loaded.
+    useEffect(() => {
+        if (!preselectStaffId || selected || !staff.length) return;
+        const s = staff.find((x) => String(x.staffid) === String(preselectStaffId));
+        if (s) void pick(s);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [preselectStaffId, staff]);
 
     const toggle = (arr: string[], set: (v: string[]) => void, v: string) =>
         set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
