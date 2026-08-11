@@ -164,6 +164,9 @@ export function OnboardingTab() {
     // ── Assign-questionnaires modal ───────────────────────────────────────
     const [startRow, setStartRow] = useState<OnboardingRow | null>(null);
     const [pickFormIds, setPickFormIds] = useState<string[]>([]);
+    // "Add onboarding elements" also supports document requirements now.
+    const [pickDocKeys, setPickDocKeys] = useState<string[]>([]);
+    const [assignReqs, setAssignReqs] = useState<{ key: string; label: string; evidenceMode?: string }[]>([]);
     const [starting, setStarting] = useState(false);
     // Candidate rows whose packet is expanded, keyed by application id.
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -249,6 +252,17 @@ export function OnboardingTab() {
     const refetchCurrent = () => { if (subTab === 'staff') void fetchStaffRows(); else void fetchRows(); };
 
     useEffect(() => { void fetchForms(); void fetchJobs(); }, []);
+    // Compliance catalog for the "Add onboarding elements" modal's Documents section.
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await fetch('/api/admin/compliance/requirements');
+                const d = await r.json();
+                const active = (Array.isArray(d?.requirements) ? d.requirements : []).filter((x: any) => x.active !== false);
+                setAssignReqs(active.map((x: any) => ({ key: x.key, label: x.label, evidenceMode: x.evidenceMode })));
+            } catch { /* ignore */ }
+        })();
+    }, []);
     useEffect(() => {
         if (subTab === 'candidates') void fetchRows();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -393,30 +407,42 @@ export function OnboardingTab() {
     // afterwards only makes sense for a single pick — with several assigned the
     // admin chooses which to fill in from the expanded packet.
     const handleAssignQuestionnaires = async () => {
-        // Works for a candidate (startRow, by applicationId) or a staff member
-        // (startStaffRow, by staffId — the endpoint resolves/creates the record).
-        const body = startRow ? { applicationId: startRow._id } : startStaffRow ? { staffId: startStaffRow.staffId } : null;
-        if (!body || pickFormIds.length === 0) return;
+        // Add onboarding elements — questionnaires and/or document requirements — for
+        // a candidate (startRow, by applicationId) or a staff member (startStaffRow,
+        // by staffId — the endpoint resolves/creates the record).
+        const subject = startRow ? { applicationId: startRow._id } : startStaffRow ? { staffId: startStaffRow.staffId } : null;
+        if (!subject || (pickFormIds.length === 0 && pickDocKeys.length === 0)) return;
         setStarting(true);
         try {
-            const res = await fetch('/api/admin/onboarding', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...body, onboardingFormIds: pickFormIds }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setAlert({ title: 'Could not assign', message: data?.error || 'Failed to assign questionnaires.' });
-                return;
+            let firstResponseId: string | null = null;
+            if (pickFormIds.length > 0) {
+                const res = await fetch('/api/admin/onboarding', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...subject, onboardingFormIds: pickFormIds }),
+                });
+                const data = await res.json();
+                if (!res.ok) { setAlert({ title: 'Could not add questionnaires', message: data?.error || 'Failed to add questionnaires.' }); return; }
+                if (pickFormIds.length === 1 && Array.isArray(data?.data) && data.data[0]?._id) firstResponseId = String(data.data[0]._id);
             }
-            const single = pickFormIds.length === 1;
+            if (pickDocKeys.length > 0) {
+                const res = await fetch('/api/admin/onboarding/document-requirements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...subject, documentKeys: pickDocKeys }),
+                });
+                const data = await res.json();
+                if (!res.ok) { setAlert({ title: 'Could not add documents', message: data?.error || 'Failed to add documents.' }); return; }
+            }
             if (startRow) setExpandedRows((prev) => ({ ...prev, [startRow._id]: true }));
             if (startStaffRow) setExpandedStaff((prev) => ({ ...prev, [startStaffRow.staffId]: true }));
             setStartRow(null);
             setStartStaffRow(null);
             setPickFormIds([]);
+            setPickDocKeys([]);
             refetchCurrent();
-            if (single && Array.isArray(data?.data) && data.data[0]?._id) void openEditor(String(data.data[0]._id));
+            // Only jump into the editor when a single questionnaire (and no docs) was added.
+            if (firstResponseId && pickDocKeys.length === 0) void openEditor(firstResponseId);
         } finally {
             setStarting(false);
         }
@@ -803,7 +829,7 @@ export function OnboardingTab() {
                                                             <Send className="h-3.5 w-3.5" /> Request
                                                         </button>
                                                         <button
-                                                            onClick={() => { setStartRow(row); setPickFormIds([]); }}
+                                                            onClick={() => { setStartRow(row); setPickFormIds([]); setPickDocKeys([]); }}
                                                             className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${packet.length > 0 ? 'ui-card-soft text-text-secondary hover:text-text-primary' : 'bg-brand-primary text-white hover:bg-brand-primary-dark'}`}
                                                         >
                                                             <Plus className="h-3.5 w-3.5" /> {packet.length > 0 ? 'Add' : 'Start'}
@@ -991,7 +1017,7 @@ export function OnboardingTab() {
                                                     <button onClick={() => { setManageStaffId(row.staffId); setShowStaffOnboard(true); }} title="Send a secure onboarding link for the staff member to self-serve" className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10">
                                                         <Send className="h-3.5 w-3.5" /> Request
                                                     </button>
-                                                    <button onClick={() => { setStartStaffRow(row); setPickFormIds([]); }} className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${packet.length > 0 ? 'ui-card-soft text-text-secondary hover:text-text-primary' : 'bg-brand-primary text-white hover:bg-brand-primary-dark'}`}>
+                                                    <button onClick={() => { setStartStaffRow(row); setPickFormIds([]); setPickDocKeys([]); }} className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg ${packet.length > 0 ? 'ui-card-soft text-text-secondary hover:text-text-primary' : 'bg-brand-primary text-white hover:bg-brand-primary-dark'}`}>
                                                         <Plus className="h-3.5 w-3.5" /> {packet.length > 0 ? 'Add' : 'Start'}
                                                     </button>
                                                 </div>
@@ -1323,47 +1349,57 @@ export function OnboardingTab() {
                             const subject = startRow || startStaffRow!;
                             const assignedIds = new Set((subject.onboarding || []).map((i) => String(i.onboardingFormId)));
                             const available = forms.filter((f) => !assignedIds.has(String(f._id)));
+                            const alreadyDocKeys = new Set((subject.invite?.requestedDocuments || []).map((d: any) => d.key));
+                            const availableDocs = assignReqs.filter((r) => !alreadyDocKeys.has(r.key));
+                            const totalPicked = pickFormIds.length + pickDocKeys.length;
                             return (
                                 <>
-                                    <h3 className="font-black text-text-primary">{assignedIds.size > 0 ? 'Add questionnaires' : 'Start onboarding'}</h3>
+                                    <h3 className="font-black text-text-primary">Add onboarding elements</h3>
                                     <p className="text-xs text-text-secondary">
-                                        Choose one or more questionnaires for <strong>{subject.applicantName}</strong>{startRow ? ` (${startRow.jobTitle})` : ''}.
-                                        {assignedIds.size > 0 && ` ${assignedIds.size} already assigned.`}
+                                        Add questionnaires and/or documents for <strong>{subject.applicantName}</strong>{startRow ? ` (${startRow.jobTitle})` : ''}.
                                     </p>
-                                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
-                                        {available.map((f) => {
-                                            const checked = pickFormIds.includes(f._id);
-                                            return (
-                                                <label
-                                                    key={f._id}
-                                                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${checked ? 'border-brand-primary bg-brand-primary-muted' : 'border-border-card hover:border-brand-primary/40'}`}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={(e) => setPickFormIds((prev) => (
-                                                            e.target.checked ? [...prev, f._id] : prev.filter((id) => id !== f._id)
-                                                        ))}
-                                                        className="mt-0.5 h-4 w-4 rounded"
-                                                    />
-                                                    <span className="min-w-0">
-                                                        <span className="block text-sm font-bold text-text-primary">{f.name}</span>
-                                                        <span className="block text-[10px] text-text-muted">{(f.customFields || []).length} question{(f.customFields || []).length === 1 ? '' : 's'}</span>
-                                                    </span>
-                                                </label>
-                                            );
-                                        })}
+
+                                    <div className="max-h-[52vh] overflow-y-auto space-y-4 pr-1">
+                                        <div className="space-y-1.5">
+                                            <p className="text-[10px] font-black uppercase tracking-wider text-text-muted">Questionnaires</p>
+                                            {available.map((f) => {
+                                                const checked = pickFormIds.includes(f._id);
+                                                return (
+                                                    <label key={f._id} className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${checked ? 'border-brand-primary bg-brand-primary-muted' : 'border-border-card hover:border-brand-primary/40'}`}>
+                                                        <input type="checkbox" checked={checked} onChange={(e) => setPickFormIds((prev) => (e.target.checked ? [...prev, f._id] : prev.filter((id) => id !== f._id)))} className="mt-0.5 h-4 w-4 rounded" />
+                                                        <span className="min-w-0">
+                                                            <span className="block text-sm font-bold text-text-primary">{f.name}</span>
+                                                            <span className="block text-[10px] text-text-muted">{(f.customFields || []).length} question{(f.customFields || []).length === 1 ? '' : 's'}</span>
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
+                                            {forms.length === 0 && <p className="text-[11px] text-amber-500">No questionnaires yet — create one in the Questionnaires tab first.</p>}
+                                            {forms.length > 0 && available.length === 0 && <p className="text-[11px] text-text-muted">All questionnaires already assigned.</p>}
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <p className="text-[10px] font-black uppercase tracking-wider text-text-muted">Documents</p>
+                                            {availableDocs.map((r) => {
+                                                const checked = pickDocKeys.includes(r.key);
+                                                return (
+                                                    <label key={r.key} className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-colors ${checked ? 'border-brand-primary bg-brand-primary-muted' : 'border-border-card hover:border-brand-primary/40'}`}>
+                                                        <input type="checkbox" checked={checked} onChange={(e) => setPickDocKeys((prev) => (e.target.checked ? [...prev, r.key] : prev.filter((k) => k !== r.key)))} className="h-4 w-4 rounded" />
+                                                        <span className="text-sm text-text-primary">{r.label}</span>
+                                                        <span className="ml-auto text-[9px] font-bold uppercase text-text-muted">{r.evidenceMode === 'metadata_only' ? 'Value' : 'File'}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                            {assignReqs.length === 0 && <p className="text-[11px] text-text-muted">No compliance requirements configured.</p>}
+                                            {assignReqs.length > 0 && availableDocs.length === 0 && <p className="text-[11px] text-text-muted">All documents already added.</p>}
+                                        </div>
                                     </div>
-                                    {forms.length === 0 && <p className="text-[11px] text-amber-500">No questionnaires yet — create one in the Questionnaires tab first.</p>}
-                                    {forms.length > 0 && available.length === 0 && (
-                                        <p className="text-[11px] text-amber-500">Every questionnaire is already assigned.</p>
-                                    )}
+
+                                    <p className="text-[10px] text-text-muted">Documents are added as expected items — upload them via <strong>View → Documents</strong>, or send the person a link with <strong>Request</strong>.</p>
                                     <div className="flex justify-end gap-2">
                                         <button onClick={() => { setStartRow(null); setStartStaffRow(null); }} className="px-4 py-2 rounded-xl text-xs font-bold ui-card-soft text-text-secondary">Cancel</button>
-                                        <button onClick={handleAssignQuestionnaires} disabled={pickFormIds.length === 0 || starting} className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-60 inline-flex items-center gap-1.5">
-                                            {starting
-                                                ? <><Loader2 className="h-4 w-4 animate-spin" /> Assigning…</>
-                                                : `Assign${pickFormIds.length > 1 ? ` ${pickFormIds.length}` : ''}`}
+                                        <button onClick={handleAssignQuestionnaires} disabled={totalPicked === 0 || starting} className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-primary text-white hover:bg-brand-primary-dark disabled:opacity-60 inline-flex items-center gap-1.5">
+                                            {starting ? <><Loader2 className="h-4 w-4 animate-spin" /> Adding…</> : `Add${totalPicked > 1 ? ` ${totalPicked}` : ''}`}
                                         </button>
                                     </div>
                                 </>
