@@ -56,6 +56,11 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
     const [docBusy, setDocBusy] = useState<string>('');
     const [docError, setDocError] = useState('');
     const [metaVal, setMetaVal] = useState<Record<string, string>>({});
+    // Full compliance catalog + admin-added document types (so an admin can upload
+    // any document, not just the ones the onboarding requested).
+    const [requirements, setRequirements] = useState<{ key: string; label: string; evidenceMode?: string }[]>([]);
+    const [extraTypes, setExtraTypes] = useState<string[]>([]);
+    const [addType, setAddType] = useState('');
 
     const docsUrl = documentsUrl || `/api/applications/${applicationId}/documents`;
 
@@ -134,9 +139,40 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [applicationId, packet]);
 
-    // Only the docs the onboarding requested — matched to what was submitted.
+    // Load the compliance catalog so the admin can attach any document type.
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await fetch('/api/admin/compliance/requirements');
+                const d = await r.json();
+                const active = (Array.isArray(d?.requirements) ? d.requirements : []).filter((x: any) => x.active !== false);
+                setRequirements(active.map((x: any) => ({ key: x.key, label: x.label, evidenceMode: x.evidenceMode })));
+            } catch { /* ignore — the requested docs still render */ }
+        })();
+    }, []);
+
     const docByType = useMemo(() => new Map(documents.map((d) => [d.documentType, d])), [documents]);
-    const hasDocsSection = requestedDocuments.length > 0;
+    const reqLabelByKey = useMemo(() => new Map(requirements.map((r) => [r.key, r.label])), [requirements]);
+
+    // The document rows to show: requested docs, plus anything already submitted,
+    // plus any type the admin added — so uploads work even with nothing requested.
+    const docRows = useMemo(() => {
+        const seen = new Set<string>();
+        const rows: { key: string; label: string }[] = [];
+        const add = (key: string, label?: string) => {
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            rows.push({ key, label: label || reqLabelByKey.get(key) || getDocumentLabel(key as DocumentType) });
+        };
+        requestedDocuments.forEach((r) => add(r.key, r.label));
+        documents.forEach((d) => add(d.documentType));
+        extraTypes.forEach((k) => add(k));
+        return rows;
+    }, [requestedDocuments, documents, extraTypes, reqLabelByKey]);
+
+    // Always offer a Documents section so an admin can attach files on the
+    // person's behalf even when the onboarding didn't request any.
+    const hasDocsSection = true;
 
     const sections: Section[] = useMemo(() => {
         const s: Section[] = questionnaires.map((q) => ({ kind: 'questionnaire' as const, q, label: q.formName }));
@@ -241,7 +277,8 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                                 <p className="text-[11px] text-text-muted">You can upload a document on the person’s behalf (e.g. they emailed it in). Uploaded files are marked pending for review.</p>
                                 {docError && <p className="text-xs text-rose-500">{docError}</p>}
                                 <div className="space-y-2">
-                                    {requestedDocuments.map((r) => {
+                                    {docRows.length === 0 && <p className="text-xs text-text-muted italic">No documents yet — add one below to upload it.</p>}
+                                    {docRows.map((r) => {
                                         const doc = docByType.get(r.key);
                                         const isMeta = usesMetadataOnlyStorage(r.key as DocumentType);
                                         const busy = docBusy === r.key;
@@ -283,6 +320,26 @@ export function CandidateOnboardingDetail({ applicationId, applicantName, jobTit
                                         );
                                     })}
                                 </div>
+                                {(() => {
+                                    const available = requirements.filter((req) => !docRows.some((d) => d.key === req.key));
+                                    if (available.length === 0) return null;
+                                    return (
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <select value={addType} onChange={(e) => setAddType(e.target.value)} className="ui-input text-xs flex-1 py-1.5">
+                                                <option value="">Add another document…</option>
+                                                {available.map((req) => <option key={req.key} value={req.key}>{req.label}</option>)}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => { if (addType) { setExtraTypes((p) => [...p, addType]); setAddType(''); } }}
+                                                disabled={!addType}
+                                                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 disabled:opacity-50"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         ) : null}
                     </div>
