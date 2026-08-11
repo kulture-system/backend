@@ -8,6 +8,7 @@ import {
 import { resolveFieldType, toDateInputValue } from "@/lib/formFields";
 import { RequestOnboardingModal } from "./onboarding/RequestOnboardingModal";
 import { StaffOnboardingModal } from "./onboarding/StaffOnboardingModal";
+import { DescriptionEditorModal } from "@/components/DescriptionEditorModal";
 import { FormsLibraryManager } from "./onboarding/FormsLibraryManager";
 import { CandidateOnboardingDetail } from "./onboarding/CandidateOnboardingDetail";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -22,6 +23,7 @@ interface CustomField {
     required: boolean;
     options?: string[];
     section?: string;
+    description?: string;
 }
 
 interface OnboardingForm {
@@ -104,6 +106,8 @@ export function OnboardingTab() {
     const [editingFormId, setEditingFormId] = useState<string | null>(null);
     const [formName, setFormName] = useState("");
     const [formFields, setFormFields] = useState<CustomField[]>([]);
+    // Index of the question whose description is being edited in the modal.
+    const [descEditIndex, setDescEditIndex] = useState<number | null>(null);
     const [fieldName, setFieldName] = useState("");
     const [fieldLabel, setFieldLabel] = useState("");
     const [fieldType, setFieldType] = useState<FieldType>('text');
@@ -874,6 +878,14 @@ export function OnboardingTab() {
                 />
             )}
 
+            <DescriptionEditorModal
+                open={descEditIndex !== null}
+                initialValue={descEditIndex !== null ? (formFields[descEditIndex]?.description || '') : ''}
+                questionLabel={descEditIndex !== null ? formFields[descEditIndex]?.label : ''}
+                onSave={(v) => { if (descEditIndex !== null) updateField(descEditIndex, { description: v }); }}
+                onClose={() => setDescEditIndex(null)}
+            />
+
             {/* ── Remove-questionnaire confirmation ──────────────────────── */}
             <ConfirmDialog
                 open={!!confirmRemove}
@@ -968,6 +980,16 @@ export function OnboardingTab() {
                                                     aria-label="Question label"
                                                     className="ui-input w-full text-sm font-bold py-1.5"
                                                 />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDescEditIndex(i)}
+                                                    aria-label="Edit question description"
+                                                    className="ui-input w-full text-xs py-1.5 text-left hover:border-brand-primary/50 transition-colors"
+                                                >
+                                                    {f.description && f.description.trim()
+                                                        ? <span className="text-text-secondary line-clamp-1">{f.description}</span>
+                                                        : <span className="text-text-muted">+ Add description / help text</span>}
+                                                </button>
                                                 {(f.type === 'select' || f.type === 'checkbox') && (
                                                     <input
                                                         value={(f.options || []).join(', ')}

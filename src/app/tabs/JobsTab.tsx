@@ -12,6 +12,7 @@ import { downloadApplicationPdf, toApplicationPdfData } from "@/lib/pdf/applicat
 import type { DocumentType } from "@/models/ApplicationDocument";
 import { DOCUMENT_METADATA, getDefaultApplicationDocuments, getDocumentLabel, usesMetadataOnlyStorage } from "@/lib/documentMetadata";
 import { LOCATION_OPTIONS, formatLocation } from "@/lib/usStates";
+import { DescriptionEditorModal } from "@/components/DescriptionEditorModal";
 
 interface CustomField {
     name: string;
@@ -20,6 +21,7 @@ interface CustomField {
     required: boolean;
     options?: string[];
     section?: string;
+    description?: string;
 }
 
 const DEFAULT_SECTION = 'Additional questions';
@@ -291,6 +293,8 @@ export function JobsTab() {
     // New Application Form Builder State
     const [formName, setFormName] = useState("");
     const [formFields, setFormFields] = useState<CustomField[]>([]);
+    // Index of the question whose description is being edited in the modal.
+    const [descEditIndex, setDescEditIndex] = useState<number | null>(null);
     const [formDocumentRequirements, setFormDocumentRequirements] = useState<DocumentRequirement[]>(DEFAULT_DOCUMENT_REQUIREMENTS);
     const [editingFormId, setEditingFormId] = useState<string | null>(null);
     // Drag-to-reorder state for the question list (index being dragged / hovered).
@@ -1947,6 +1951,16 @@ export function JobsTab() {
                                                         aria-label="Question label"
                                                         className="w-full text-[13px] font-bold bg-white dark:bg-black/30 border border-slate-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-slate-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                                                     />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDescEditIndex(idx)}
+                                                        aria-label="Edit question description"
+                                                        className="w-full text-left text-[11px] bg-white dark:bg-black/30 border border-slate-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 outline-none hover:border-cyan-500/60 transition-colors"
+                                                    >
+                                                        {field.description && field.description.trim()
+                                                            ? <span className="text-slate-600 dark:text-slate-300 line-clamp-1">{field.description}</span>
+                                                            : <span className="text-slate-400 dark:text-slate-500">+ Add description / help text</span>}
+                                                    </button>
                                                     {(field.type === 'select' || field.type === 'checkbox') && (
                                                         <input
                                                             type="text"
@@ -2639,6 +2653,14 @@ export function JobsTab() {
             )}
 
             {/* Custom Theme Alert Dialog */}
+            <DescriptionEditorModal
+                open={descEditIndex !== null}
+                initialValue={descEditIndex !== null ? (formFields[descEditIndex]?.description || '') : ''}
+                questionLabel={descEditIndex !== null ? formFields[descEditIndex]?.label : ''}
+                onSave={(v) => { if (descEditIndex !== null) handleFieldChange(descEditIndex, { description: v }); }}
+                onClose={() => setDescEditIndex(null)}
+            />
+
             {customAlert && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
                     <div className="bg-surface-modal border border-border-modal rounded-2xl w-full max-w-sm p-6 shadow-2xl relative text-center space-y-4">

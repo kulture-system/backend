@@ -38,6 +38,7 @@ interface CustomField {
   required: boolean;
   options?: string[];
   section?: string;
+  description?: string;
 }
 
 // Same section grouping the apply form uses, so the submitted-data summary reads
@@ -577,7 +578,10 @@ export default function TrackApplicationDetailsPage({ params }: { params: Promis
                   {fields.map((field) => {
                     const ftype = resolveFieldType(field);
                     return (
-                    <div key={field.name} className="space-y-2">
+                    <div key={field.name} className={`space-y-2${field.description && field.description.trim() ? ' border border-border-card rounded-xl p-4' : ''}`}>
+                      {field.description && field.description.trim() && (
+                        <p className="text-xs text-text-muted whitespace-pre-line">{field.description}</p>
+                      )}
                       <label className="text-xs font-bold text-text-secondary">
                         {field.label}
                         {field.required && <span className="text-rose-500 ml-1">*</span>}
