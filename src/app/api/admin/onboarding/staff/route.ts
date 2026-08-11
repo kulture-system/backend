@@ -38,9 +38,12 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const onboardingStatus = searchParams.get('onboardingStatus') || '';
         const q = (searchParams.get('q') || '').trim();
+        const staffId = (searchParams.get('staffId') || '').trim();
         const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
 
-        const staff = await Staff.find({})
+        // ?staffId= returns just that one staff member's onboarding (used by the
+        // staff compliance detail to show onboarding progress in place).
+        const staff = await Staff.find(staffId ? { staffid: staffId } : {})
             .select('staffid email firstname lastname full_name')
             .lean();
 
