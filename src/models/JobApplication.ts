@@ -22,6 +22,9 @@ export interface JobApplicationDocument extends mongoose.Document {
     // email", so a second application the person later submits never pollutes
     // their staff profile. Null until the hire's staff row exists.
     acceptedStaffId?: string | null;
+    // When the application was accepted (stamped once on the transition to
+    // 'accepted'). Shown on the applicant tracking page.
+    acceptedAt?: Date | null;
     // Person-centric owner (EmployeeRecord). Phase 1: dual-written on submit +
     // backfilled by migration 012; not yet read.
     employeeRecordId?: mongoose.Types.ObjectId | null;
@@ -79,6 +82,10 @@ const JobApplicationSchema = new mongoose.Schema<JobApplicationDocument>(
             type: String,
             default: null,
         },
+        acceptedAt: {
+            type: Date,
+            default: null,
+        },
         employeeRecordId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'EmployeeRecord',
@@ -108,7 +115,8 @@ if (existingModel) {
     const enumValues = (existingModel.schema.path('status') as any)?.enumValues as string[] | undefined;
     const hasAcceptedStaffId = !!existingModel.schema.path('acceptedStaffId');
     const hasEmployeeRecordId = !!existingModel.schema.path('employeeRecordId');
-    if ((Array.isArray(enumValues) && !enumValues.includes('changes_requested')) || !hasAcceptedStaffId || !hasEmployeeRecordId) {
+    const hasAcceptedAt = !!existingModel.schema.path('acceptedAt');
+    if ((Array.isArray(enumValues) && !enumValues.includes('changes_requested')) || !hasAcceptedStaffId || !hasEmployeeRecordId || !hasAcceptedAt) {
         delete mongoose.models.JobApplication;
     }
 }

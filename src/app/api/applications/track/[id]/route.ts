@@ -222,6 +222,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         notes: sanitizeApplicantNotes(application.notes),
         createdAt: application.createdAt,
         updatedAt: application.updatedAt,
+        acceptedAt: (application as any).acceptedAt || null,
       },
       job: {
         _id: job?._id,
