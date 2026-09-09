@@ -92,7 +92,6 @@ export default function LandingPage() {
     };
 
     // Pre-fill the contact form's inquiry type when a CTA funnels here.
-    const requestType = (type: string) => setContact((c) => ({ ...c, inquiryType: type }));
 
     const submitContact = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -237,12 +236,12 @@ export default function LandingPage() {
                             Better access. Smarter coordination. Reliable support.
                         </p>
                         <div className="flex flex-wrap gap-4 pt-2">
-                            <a href="#contact" onClick={() => requestType("Facility Staffing")} className="bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-brand-primary/30 flex items-center gap-2 active:scale-95 transition-all">
+                            <Link href="/request-staffing" className="bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-brand-primary/30 flex items-center gap-2 active:scale-95 transition-all">
                                 Request Staffing <ArrowRight className="h-5 w-5" />
-                            </a>
-                            <a href="#in-home" className="bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold px-7 py-3.5 rounded-xl backdrop-blur flex items-center gap-2 active:scale-95 transition-all">
+                            </Link>
+                            <Link href="/home-care" className="bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold px-7 py-3.5 rounded-xl backdrop-blur flex items-center gap-2 active:scale-95 transition-all">
                                 <Home className="h-5 w-5" /> Explore In-Home Care
-                            </a>
+                            </Link>
                         </div>
                         <div className="flex flex-wrap gap-x-8 gap-y-3 pt-6 text-sm text-zinc-300">
                             <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-brand-primary" /> Credentialed & compliant</span>
@@ -299,9 +298,9 @@ export default function LandingPage() {
                 </Reveal>
 
                 <Reveal className="mt-8" delay={150}>
-                    <a href="#contact" onClick={() => requestType("Facility Staffing")} className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-brand-primary/20 active:scale-95 transition-all">
+                    <Link href="/request-staffing" className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-brand-primary/20 active:scale-95 transition-all">
                         Find Staffing Solutions <ArrowRight className="h-4 w-4" />
-                    </a>
+                    </Link>
                 </Reveal>
             </section>
 
@@ -336,9 +335,9 @@ export default function LandingPage() {
                         <p className="text-sm text-text-secondary leading-relaxed max-w-2xl">
                             We also support individuals living in apartments within retirement, assisted living, long-term care, memory care, rehabilitation, and nursing environments.
                         </p>
-                        <a href="#contact" onClick={() => requestType("In-Home Care")} className="shrink-0 inline-flex items-center gap-2 bg-brand-accent hover:bg-brand-accent-dark text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-brand-accent/20 active:scale-95 transition-all">
+                        <Link href="/request-home-care" className="shrink-0 inline-flex items-center gap-2 bg-brand-accent hover:bg-brand-accent-dark text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-brand-accent/20 active:scale-95 transition-all">
                             Explore Care Options <ArrowRight className="h-4 w-4" />
-                        </a>
+                        </Link>
                     </Reveal>
                 </div>
             </section>
@@ -431,12 +430,12 @@ export default function LandingPage() {
                         Whether you are filling an urgent shift, building reliable workforce capacity, or arranging personalized in-home care, Pristine Health helps you move forward with confidence.
                     </p>
                     <div className="flex flex-wrap justify-center gap-4 pt-2">
-                        <a href="#contact" onClick={() => requestType("Facility Staffing")} className="bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-brand-primary/30 flex items-center gap-2 active:scale-95 transition-all">
+                        <Link href="/request-staffing" className="bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-brand-primary/30 flex items-center gap-2 active:scale-95 transition-all">
                             Request Staffing <ArrowRight className="h-4 w-4" />
-                        </a>
-                        <a href="#contact" onClick={() => requestType("In-Home Care")} className="bg-white text-brand-accent hover:bg-zinc-100 font-bold px-6 py-3.5 rounded-xl flex items-center gap-2 active:scale-95 transition-all">
+                        </Link>
+                        <Link href="/request-home-care" className="bg-white text-brand-accent hover:bg-zinc-100 font-bold px-6 py-3.5 rounded-xl flex items-center gap-2 active:scale-95 transition-all">
                             <Home className="h-4 w-4" /> Get In-Home Care
-                        </a>
+                        </Link>
                         <Link href="/jobs" className="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold px-6 py-3.5 rounded-xl backdrop-blur flex items-center gap-2 active:scale-95 transition-all">
                             Find Opportunities <ArrowRight className="h-4 w-4" />
                         </Link>
