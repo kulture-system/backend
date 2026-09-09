@@ -49,7 +49,7 @@ function MarketingFooter() {
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
                 <div className="col-span-2 md:col-span-1">
                     <div className="flex items-center gap-2"><img src="/logo.png" alt="" className="h-8 w-auto" /><span className="font-black text-text-primary">{SITE_SHORT}</span></div>
-                    <p className="mt-3 text-text-muted text-[13px] max-w-xs">Healthcare staffing for facilities and personalized in-home care for families across Washington.</p>
+                    <p className="mt-3 text-text-muted text-[13px] max-w-xs">Healthcare staffing for facilities and personalized in-home care for families — nationwide, starting in Washington.</p>
                 </div>
                 <div>
                     <p className="text-[11px] font-black uppercase tracking-wider text-text-muted mb-3">Facility Staffing</p>
@@ -81,7 +81,7 @@ function MarketingFooter() {
             <div className="border-t border-border-card">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-[12px] text-text-muted flex flex-wrap items-center justify-between gap-2">
                     <span>© {new Date().getFullYear()} {SITE_SHORT}. All rights reserved.</span>
-                    <span>Serving Washington State</span>
+                    <span>Serving clients nationwide</span>
                 </div>
             </div>
         </footer>

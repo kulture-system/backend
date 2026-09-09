@@ -5,8 +5,11 @@
 export const SITE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://pristinehealthstaffing.com').replace(/\/$/, '');
 export const SITE_NAME = 'Pristine Health Staffing';
 export const SITE_SHORT = 'Pristine Health';
-export const SITE_TAGLINE = 'Healthcare Staffing & In-Home Care Across Washington';
-export const SITE_STATE = 'Washington';
+export const SITE_TAGLINE = 'Healthcare Staffing & In-Home Care Nationwide';
+// The brand serves clients nationwide; WA is the launch market, not a limit.
+// SITE_AREA is the phrase dropped into page copy ("...across the U.S.").
+export const SITE_AREA = 'the U.S.';
+export const SITE_COUNTRY = 'United States';
 export const CONTACT_EMAIL = 'info@pristinehealthstaffing.com';
 
 /** Absolute URL from a site-relative path. */
@@ -26,12 +29,12 @@ export function organizationLd() {
         url: SITE_URL,
         logo: LOGO,
         email: CONTACT_EMAIL,
-        areaServed: { '@type': 'State', name: SITE_STATE },
+        areaServed: { '@type': 'Country', name: SITE_COUNTRY },
         contactPoint: [{
             '@type': 'ContactPoint',
             contactType: 'customer service',
             email: CONTACT_EMAIL,
-            areaServed: 'US-WA',
+            areaServed: 'US',
             availableLanguage: ['English'],
         }],
     };
@@ -59,7 +62,7 @@ export function serviceLd(opts: { name: string; description: string; path: strin
         provider: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: LOGO },
         areaServed: (opts.areaServed && opts.areaServed.length
             ? opts.areaServed.map((a) => ({ '@type': 'City', name: a }))
-            : { '@type': 'State', name: SITE_STATE }),
+            : { '@type': 'Country', name: SITE_COUNTRY }),
     };
 }
 
@@ -74,7 +77,7 @@ export function localBusinessLd(opts: { city: string; region?: string; path: str
         image: OG_DEFAULT,
         email: CONTACT_EMAIL,
         areaServed: { '@type': 'City', name: opts.city },
-        address: { '@type': 'PostalAddress', addressLocality: opts.city, addressRegion: opts.region || 'WA', addressCountry: 'US' },
+        address: { '@type': 'PostalAddress', addressLocality: opts.city, addressRegion: opts.region || undefined, addressCountry: 'US' },
         parentOrganization: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
     };
 }
@@ -131,7 +134,7 @@ export function jobPostingLd(job: {
             address: {
                 '@type': 'PostalAddress',
                 addressLocality: job.city || undefined,
-                addressRegion: job.region || 'WA',
+                addressRegion: job.region || undefined,
                 addressCountry: 'US',
             },
         },

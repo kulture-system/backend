@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { IntakeForm, type IntakeField } from "@/components/marketing/IntakeForm";
 import { facilityServices } from "@/lib/marketing/taxonomy";
-import { SITE_STATE } from "@/lib/seo";
+import { SITE_AREA } from "@/lib/seo";
 
-const DESC = `Request healthcare staffing for your facility across ${SITE_STATE} — tell us the roles, shifts and timing and we’ll respond quickly.`;
+const DESC = `Request healthcare staffing for your facility anywhere in ${SITE_AREA} — tell us the roles, shifts and timing and we’ll respond quickly.`;
 
 export const metadata: Metadata = {
     title: "Request Staffing for Your Facility",

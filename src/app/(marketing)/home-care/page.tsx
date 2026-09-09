@@ -3,16 +3,16 @@ import { JsonLd } from "@/components/JsonLd";
 import { CtaButtons } from "@/components/marketing/MarketingShell";
 import { HubGrid } from "@/components/marketing/HubGrid";
 import { homeCareServices } from "@/lib/marketing/taxonomy";
-import { breadcrumbLd, SITE_STATE } from "@/lib/seo";
+import { breadcrumbLd, SITE_AREA } from "@/lib/seo";
 
 const TITLE = "Home Care";
-const DESC = `Compassionate in-home care for seniors and families across ${SITE_STATE} — personal care, companion care, respite, dementia support, and 24-hour and overnight care so your loved one can stay safely at home.`;
+const DESC = `Compassionate in-home care for seniors and families across ${SITE_AREA} — personal care, companion care, respite, dementia support, and 24-hour and overnight care so your loved one can stay safely at home.`;
 
 export const metadata: Metadata = {
-    title: `In-Home Senior Care in ${SITE_STATE}`,
+    title: `Nationwide In-Home Senior Care`,
     description: DESC,
     alternates: { canonical: "/home-care" },
-    openGraph: { title: `In-Home Senior Care in ${SITE_STATE}`, description: DESC, url: "/home-care" },
+    openGraph: { title: `Nationwide In-Home Senior Care`, description: DESC, url: "/home-care" },
 };
 
 export default function HomeCareHub() {

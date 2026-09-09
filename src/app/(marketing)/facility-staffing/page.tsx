@@ -3,16 +3,16 @@ import { JsonLd } from "@/components/JsonLd";
 import { CtaButtons } from "@/components/marketing/MarketingShell";
 import { HubGrid } from "@/components/marketing/HubGrid";
 import { facilityServices } from "@/lib/marketing/taxonomy";
-import { breadcrumbLd, SITE_STATE } from "@/lib/seo";
+import { breadcrumbLd, SITE_AREA } from "@/lib/seo";
 
 const TITLE = "Facility Staffing";
-const DESC = `Reliable healthcare staffing for nursing homes, assisted living, memory care and skilled nursing facilities across ${SITE_STATE} — CNAs, caregivers, med techs, LPNs, RNs and 1:1 patient support, including short-notice coverage.`;
+const DESC = `Reliable healthcare staffing for nursing homes, assisted living, memory care and skilled nursing facilities across ${SITE_AREA} — CNAs, caregivers, med techs, LPNs, RNs and 1:1 patient support, including short-notice coverage.`;
 
 export const metadata: Metadata = {
-    title: `Healthcare Facility Staffing Agency in ${SITE_STATE}`,
+    title: `Nationwide Healthcare Facility Staffing Agency`,
     description: DESC,
     alternates: { canonical: "/facility-staffing" },
-    openGraph: { title: `Healthcare Facility Staffing Agency in ${SITE_STATE}`, description: DESC, url: "/facility-staffing" },
+    openGraph: { title: `Nationwide Healthcare Facility Staffing Agency`, description: DESC, url: "/facility-staffing" },
 };
 
 export default function FacilityStaffingHub() {
@@ -23,7 +23,7 @@ export default function FacilityStaffingHub() {
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
                     <p className="text-sm font-black uppercase tracking-wider text-brand-primary">For Facilities</p>
                     <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-text-primary max-w-3xl">
-                        Dependable healthcare staffing for {SITE_STATE} facilities
+                        Dependable healthcare staffing for facilities nationwide
                     </h1>
                     <p className="mt-4 text-lg text-text-secondary leading-relaxed max-w-2xl">{DESC}</p>
                     <CtaButtons className="mt-7" />

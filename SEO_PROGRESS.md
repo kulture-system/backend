@@ -85,11 +85,12 @@ Left as-is on purpose: nav "Portal Login" button, nav "Contact" link, the Techno
 
 - **Base URL:** `NEXT_PUBLIC_BASE_URL`, defaults to `https://pristinehealthstaffing.com`.
 - **Taxonomy in code** (not CMS/DB) — fastest, fully static, version-controlled. Revisit if non-devs need to edit copy.
-- **Placeholder copy** in `taxonomy.ts` is drafted from the strategy and **meant to be edited** (H1s, meta descriptions, FAQs).
+- **`taxonomy.ts` copy approved** by the owner (2026-09-09), with one correction applied: **scope is nationwide, not Washington.**
+- **Nationwide, WA-first (2026-09-09).** Brand copy + schema now say the company serves clients across the U.S.; Washington is the launch market, not a limit. Concretely: `areaServed` in Organization/Service schema = `Country: United States` (was `State: Washington`); ContactPoint `areaServed` = `US`; `jobPostingLd`/`localBusinessLd` no longer default a missing region to `WA`; body copy says "nationwide" / "across the U.S."; `SITE_AREA`/`SITE_COUNTRY` replaced `SITE_STATE`; the Service Areas page states any location is served (WA cities listed as "where we're active now" + an "ask about your area" CTA). The 9 WA city pages remain as the initial local-SEO set; more cities/states are pure data entry in `taxonomy.ts`.
 - `AggregateRating` schema deferred until real reviews exist.
 
 ## Open questions for the owner
 
-- [ ] Edit/approve the placeholder copy in `taxonomy.ts` (esp. H1s + meta descriptions).
+- [x] ~~Edit/approve the copy in `taxonomy.ts`~~ — approved as-is (2026-09-09).
 - [ ] Confirm the 9 launch cities are the right ones.
 - [ ] Route staffing vs home-care leads to different inboxes? (Both currently email the same address via `/api/contact` → `sendContactEmail`.)

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { IntakeForm, type IntakeField } from "@/components/marketing/IntakeForm";
-import { SITE_STATE } from "@/lib/seo";
+import { SITE_AREA } from "@/lib/seo";
 
-const DESC = `Request in-home care for your loved one across ${SITE_STATE} — tell us what kind of care and when, and we’ll be in touch to help.`;
+const DESC = `Request in-home care for your loved one anywhere in ${SITE_AREA} — tell us what kind of care and when, and we’ll be in touch to help.`;
 
 export const metadata: Metadata = {
     title: "Request Home Care for a Loved One",
