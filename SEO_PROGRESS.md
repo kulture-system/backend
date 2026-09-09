@@ -40,10 +40,17 @@ Turn the two audiences into leads. Reuses the existing `/api/contact` pipeline (
 - ✅ Thank-you / confirmation state (inline success panel)
 - ✅ Reusable `IntakeForm` client component (declarative field schema; loads reCAPTCHA)
 
-## Phase 3 — Homepage two-audience split  ⬜
+## Phase 3 — Route homepage CTAs to the intake pages  ✅ (rewire-only)
 
-- ⬜ Hero splits Facilities vs Families with two CTAs
-- ⬜ Entry points into both systems + featured cities
+Scope chosen: **rewire only** — no hero redesign; the old `#contact` form stays. In `src/app/page.tsx`, the homepage's buttons used to scroll to the on-page `#contact` form and pre-select an inquiry dropdown; they now navigate to the dedicated pages:
+
+- ✅ Hero "Request Staffing" + Workforce "Find Staffing Solutions" + final-band "Request Staffing" → `/request-staffing`
+- ✅ In-Home "Explore Care Options" + final-band "Get In-Home Care" → `/request-home-care`
+- ✅ Hero "Explore In-Home Care" → `/home-care` hub
+- ✅ Removed the now-unused `requestType` helper
+- ⬜ *Not done (deferred):* redesign the hero into two side-by-side Facilities/Families panels — a bigger visual change, skipped by choice.
+
+Left as-is on purpose: nav "Portal Login" button, nav "Contact" link, the Technology-section generic "get in touch" button, and the `#contact` inline form itself (still a second, general-purpose lead path).
 
 ## Phase 4 — Google for Jobs (`JobPosting`)  ⬜
 
@@ -75,5 +82,5 @@ Turn the two audiences into leads. Reuses the existing `/api/contact` pipeline (
 ## Open questions for the owner
 
 - [ ] Edit/approve the placeholder copy in `taxonomy.ts` (esp. H1s + meta descriptions).
-- [ ] Priority order for Phase 2 vs Phase 3.
 - [ ] Confirm the 9 launch cities are the right ones.
+- [ ] Route staffing vs home-care leads to different inboxes? (Both currently email the same address via `/api/contact` → `sendContactEmail`.)
