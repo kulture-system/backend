@@ -14,6 +14,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         { url: abs("/facility-staffing"), lastModified: now, changeFrequency: "weekly", priority: 0.9 },
         { url: abs("/home-care"), lastModified: now, changeFrequency: "weekly", priority: 0.9 },
         { url: abs("/locations"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+        { url: abs("/request-staffing"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+        { url: abs("/request-home-care"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
         { url: abs("/jobs"), lastModified: now, changeFrequency: "daily", priority: 0.8 },
     ];
 

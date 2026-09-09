@@ -7,20 +7,18 @@ const NAV = [
     { href: "/locations", label: "Service Areas" },
 ];
 
-// TODO: replace mailto with dedicated /request-staffing and /request-home-care
-// intake forms (cross-cutting phase). Kept functional for now.
-export const STAFFING_CTA = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Staffing request")}`;
-export const HOMECARE_CTA = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Home care request")}`;
+export const STAFFING_CTA = "/request-staffing";
+export const HOMECARE_CTA = "/request-home-care";
 
 export function CtaButtons({ className = "" }: { className?: string }) {
     return (
         <div className={`flex flex-wrap gap-3 ${className}`}>
-            <a href={STAFFING_CTA} className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold bg-brand-primary text-white hover:bg-brand-primary-dark transition-colors">
+            <Link href={STAFFING_CTA} className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold bg-brand-primary text-white hover:bg-brand-primary-dark transition-colors">
                 Request Staffing
-            </a>
-            <a href={HOMECARE_CTA} className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold border border-brand-primary/40 text-brand-primary hover:bg-brand-primary-muted transition-colors">
+            </Link>
+            <Link href={HOMECARE_CTA} className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold border border-brand-primary/40 text-brand-primary hover:bg-brand-primary-muted transition-colors">
                 Request Home Care
-            </a>
+            </Link>
         </div>
     );
 }

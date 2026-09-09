@@ -6,7 +6,7 @@ Living checklist for the SEO effort on the Next.js app (**pristinehealthstaffing
 
 Status key: ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-09-02_
+_Last updated: 2026-09-09_
 
 ---
 
@@ -29,15 +29,16 @@ Verified: `tsc --noEmit` clean, `next build` green (all marketing routes prerend
 
 ---
 
-## Phase 2 — Buyer intake forms  ⬜
+## Phase 2 — Buyer intake forms  ✅
 
-Turn the two audiences into leads. Currently CTAs are `mailto:` (flagged with a TODO in `src/components/marketing/MarketingShell.tsx`).
+Turn the two audiences into leads. Reuses the existing `/api/contact` pipeline (rate limit + honeypot + time-trap + link-flood + reCAPTCHA v3 + `sendContactEmail`); no new API or model.
 
-- ⬜ `/request-staffing` — facility intake (facility name, role(s), shifts, city, urgency, contact)
-- ⬜ `/request-home-care` — family intake (care type, hours, city, contact)
-- ⬜ Backend handler + notification (reuse/extend `/api/contact` pattern)
-- ⬜ Swap `STAFFING_CTA` / `HOMECARE_CTA` to the new routes
-- ⬜ Thank-you / confirmation state
+- ✅ `/request-staffing` — facility intake (facility name/type, roles, city, shifts, urgency, notes)
+- ✅ `/request-home-care` — family intake (recipient, care type, city, hours, start, notes)
+- ✅ Reuse `/api/contact` (structured fields composed into the message; `inquiryType` set per form)
+- ✅ Swap `STAFFING_CTA` / `HOMECARE_CTA` to the new routes + middleware allowlist + sitemap
+- ✅ Thank-you / confirmation state (inline success panel)
+- ✅ Reusable `IntakeForm` client component (declarative field schema; loads reCAPTCHA)
 
 ## Phase 3 — Homepage two-audience split  ⬜
 

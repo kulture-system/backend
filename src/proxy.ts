@@ -27,6 +27,8 @@ export default withAuth(
                     pathname.startsWith("/facility-staffing") ||// Public marketing: facility staffing
                     pathname.startsWith("/home-care") ||        // Public marketing: home care
                     pathname.startsWith("/locations") ||        // Public marketing: service-area hubs
+                    pathname.startsWith("/request-staffing") || // Public marketing: facility intake form
+                    pathname.startsWith("/request-home-care") ||// Public marketing: home care intake form
                     pathname === "/robots.txt" ||               // Crawlers (no auth possible)
                     pathname === "/sitemap.xml" ||              // Crawlers (no auth possible)
                     pathname.startsWith("/jobs") ||             // Public job listings
