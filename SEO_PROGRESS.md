@@ -6,7 +6,7 @@ Living checklist for the SEO effort on the Next.js app (**pristinehealthstaffing
 
 Status key: ✅ done · 🚧 in progress · ⬜ not started
 
-_Last updated: 2026-09-09_
+_Last updated: 2026-09-09 (Phases 1–4 done)_
 
 ---
 
@@ -52,11 +52,17 @@ Scope chosen: **rewire only** — no hero redesign; the old `#contact` form stay
 
 Left as-is on purpose: nav "Portal Login" button, nav "Contact" link, the Technology-section generic "get in touch" button, and the `#contact` inline form itself (still a second, general-purpose lead path).
 
-## Phase 4 — Google for Jobs (`JobPosting`)  ⬜
+## Phase 4 — Google for Jobs (`JobPosting`)  ✅
 
-- ⬜ Server-render `/jobs/[id]` (currently dynamic/client) so schema is crawlable
-- ⬜ Emit `jobPostingLd` (builder already exists in `src/lib/seo.ts`)
-- ⬜ Optional JobPosition fields: `employmentType`, `baseSalary`, `validThrough`
+`/jobs/[id]` was a `"use client"` page fetching `/api/jobs/[id]` in `useEffect` — the job content and schema never reached the initial HTML, so Google couldn't read them.
+
+- ✅ `page.tsx` is now a **server component**: reads the job from Mongo via a `cache()`-wrapped `getJob` (one DB read shared by `generateMetadata` + the page), `notFound()` on missing / non-`open` / invalid ObjectId.
+- ✅ Emits `JobPosting` + `BreadcrumbList` JSON-LD in server HTML via `jobPostingLd` (`src/lib/seo.ts`). Fields mapped from the model: `title`, `sections`→`description` (HTML), `createdAt`→`datePosted`, `city`+`location`→`jobLocation`, `imageUrl`→`image`.
+- ✅ Per-job metadata: title `"<title> — <city, ST>"`, description built from sections (≤160 chars), canonical, Open Graph.
+- ✅ Existing UI + interactivity (theme toggle, Apply buttons) moved to `JobDetailClient.tsx`, which takes the job as a prop.
+- ⬜ *Deferred:* `employmentType`, `baseSalary`, `validThrough` — `jobPostingLd` already accepts them, but the `JobPosition` model + admin form don't capture them yet. Without `validThrough`, Google may expire a listing after ~30 days.
+
+**To verify after deploy:** paste a live `/jobs/<id>` URL into Google's [Rich Results Test](https://search.google.com/test/rich-results) — expect a valid "Job posting".
 
 ## Phase 5 — Resources / content hub  ⬜
 
