@@ -60,14 +60,17 @@ Left as-is on purpose: nav "Portal Login" button, nav "Contact" link, the Techno
 - ✅ Emits `JobPosting` + `BreadcrumbList` JSON-LD in server HTML via `jobPostingLd` (`src/lib/seo.ts`). Fields mapped from the model: `title`, `sections`→`description` (HTML), `createdAt`→`datePosted`, `city`+`location`→`jobLocation`, `imageUrl`→`image`.
 - ✅ Per-job metadata: title `"<title> — <city, ST>"`, description built from sections (≤160 chars), canonical, Open Graph.
 - ✅ Existing UI + interactivity (theme toggle, Apply buttons) moved to `JobDetailClient.tsx`, which takes the job as a prop.
-- ⬜ *Deferred:* `employmentType`, `baseSalary`, `validThrough` — `jobPostingLd` already accepts them, but the `JobPosition` model + admin form don't capture them yet. Without `validThrough`, Google may expire a listing after ~30 days.
+- ✂️ *Not doing `validThrough`* — decided we don't need it (owner, 2026-09-09). Consequence accepted: Google may expire a listing ~30 days after `datePosted`; re-posting/updating the role refreshes it. `employmentType`/`baseSalary` similarly skipped unless we later capture them on the `JobPosition` model.
 
 **To verify after deploy:** paste a live `/jobs/<id>` URL into Google's [Rich Results Test](https://search.google.com/test/rich-results) — expect a valid "Job posting".
 
-## Phase 5 — Resources / content hub  ⬜
+## Phase 5 — Resources / content hub  ⬜ (blocked on content)
+
+**Purpose:** capture *informational* searches the transactional service pages can't rank for (e.g. "how much does in-home care cost", "signs my parent needs home care", "per diem vs contract staffing"), then internal-link those readers down to the request/service pages, and build topical authority that lifts the money pages. It's an empty container until real articles exist.
 
 - ⬜ `/resources` index + article template (schema: Article/FAQ)
 - ⬜ Seed cornerstone posts from strategy keywords
+- ❓ **Decision needed:** only worth building if someone will write ~5–10 articles. If not, skip in favor of Phase 6.
 
 ## Phase 6 — Off-code (owner tasks, not in repo)  ⬜
 
