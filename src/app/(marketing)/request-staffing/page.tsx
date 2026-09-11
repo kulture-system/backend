@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { IntakeForm, type IntakeField } from "@/components/marketing/IntakeForm";
+import { RequestPageLayout } from "@/components/marketing/RequestPageLayout";
 import { facilityServices } from "@/lib/marketing/taxonomy";
 import { SITE_AREA } from "@/lib/seo";
 
@@ -28,18 +28,9 @@ const FIELDS: IntakeField[] = [
 
 export default function RequestStaffingPage() {
     return (
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-14">
-            <nav className="text-[12px] font-semibold text-text-muted mb-4 flex items-center gap-1.5">
-                <Link href="/" className="hover:text-brand-primary">Home</Link><span>/</span>
-                <Link href="/facility-staffing" className="hover:text-brand-primary">Facility Staffing</Link><span>/</span>
-                <span className="text-text-secondary">Request Staffing</span>
-            </nav>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-text-primary">Request staffing for your facility</h1>
-            <p className="mt-3 text-text-secondary leading-relaxed">{DESC}</p>
-            <div className="mt-8 rounded-2xl border border-border-card bg-surface-card p-6 sm:p-8">
-                <IntakeForm fields={FIELDS} inquiryType="Facility Staffing Request" submitLabel="Request staffing"
-                    successMessage="Thanks — we’ve received your staffing request and will be in touch shortly." />
-            </div>
-        </div>
+        <RequestPageLayout crumbLabel="Facility Staffing" crumbHref="/facility-staffing" title="Request staffing for your facility" description={DESC}>
+            <IntakeForm fields={FIELDS} inquiryType="Facility Staffing Request" submitLabel="Request staffing"
+                successMessage="Thanks — we’ve received your staffing request and will be in touch shortly." />
+        </RequestPageLayout>
     );
 }

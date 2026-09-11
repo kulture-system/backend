@@ -239,8 +239,8 @@ export default function LandingPage() {
                             <Link href="/request-staffing" className="bg-brand-primary hover:bg-brand-primary-dark text-white font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-brand-primary/30 flex items-center gap-2 active:scale-95 transition-all">
                                 Request Staffing <ArrowRight className="h-5 w-5" />
                             </Link>
-                            <Link href="/home-care" className="bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold px-7 py-3.5 rounded-xl backdrop-blur flex items-center gap-2 active:scale-95 transition-all">
-                                <Home className="h-5 w-5" /> Explore In-Home Care
+                            <Link href="/request-home-care" className="bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold px-7 py-3.5 rounded-xl backdrop-blur flex items-center gap-2 active:scale-95 transition-all">
+                                <Home className="h-5 w-5" /> Request Home Care
                             </Link>
                         </div>
                         <div className="flex flex-wrap gap-x-8 gap-y-3 pt-6 text-sm text-zinc-300">

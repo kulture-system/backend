@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { IntakeForm, type IntakeField } from "@/components/marketing/IntakeForm";
+import { RequestPageLayout } from "@/components/marketing/RequestPageLayout";
 import { SITE_AREA } from "@/lib/seo";
 
 const DESC = `Request in-home care for your loved one anywhere in ${SITE_AREA} — tell us what kind of care and when, and we’ll be in touch to help.`;
@@ -26,18 +26,9 @@ const FIELDS: IntakeField[] = [
 
 export default function RequestHomeCarePage() {
     return (
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-14">
-            <nav className="text-[12px] font-semibold text-text-muted mb-4 flex items-center gap-1.5">
-                <Link href="/" className="hover:text-brand-primary">Home</Link><span>/</span>
-                <Link href="/home-care" className="hover:text-brand-primary">Home Care</Link><span>/</span>
-                <span className="text-text-secondary">Request Home Care</span>
-            </nav>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-text-primary">Request in-home care</h1>
-            <p className="mt-3 text-text-secondary leading-relaxed">{DESC}</p>
-            <div className="mt-8 rounded-2xl border border-border-card bg-surface-card p-6 sm:p-8">
-                <IntakeForm fields={FIELDS} inquiryType="Home Care Request" submitLabel="Request home care"
-                    successMessage="Thanks — we’ve received your request and a care coordinator will reach out shortly." />
-            </div>
-        </div>
+        <RequestPageLayout crumbLabel="Home Care" crumbHref="/home-care" title="Request in-home care" description={DESC}>
+            <IntakeForm fields={FIELDS} inquiryType="Home Care Request" submitLabel="Request home care"
+                successMessage="Thanks — we’ve received your request and a care coordinator will reach out shortly." />
+        </RequestPageLayout>
     );
 }
