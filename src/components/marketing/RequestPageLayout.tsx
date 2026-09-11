@@ -1,43 +1,49 @@
 import Link from "next/link";
 
-// Shared shell for the intake pages: an image hero band (reusing the homepage
-// photo) with breadcrumb + heading, and the form card pulled up over it.
+// Shared shell for the intake pages: a two-column layout with a full, clearly
+// visible banner image beside the form. Stacks (image on top) on mobile.
 export function RequestPageLayout({
     crumbLabel,
     crumbHref,
     title,
     description,
+    image,
+    imageAlt,
     children,
 }: {
     crumbLabel: string;
     crumbHref: string;
     title: string;
     description: string;
+    image: string;
+    imageAlt: string;
     children: React.ReactNode;
 }) {
     return (
-        <div className="pb-16">
-            <section className="relative overflow-hidden bg-zinc-950">
-                <div
-                    className="absolute inset-0 bg-cover bg-center opacity-40"
-                    style={{ backgroundImage: "url('/healthcare_professionals_diversity.png')" }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/75 via-zinc-950/80 to-zinc-950/95" />
-                <div className="absolute -top-16 right-[12%] w-72 h-72 bg-brand-primary/25 rounded-full blur-[130px] pointer-events-none" />
-                <div className="relative max-w-2xl mx-auto px-4 sm:px-6 pt-14 pb-24 text-white">
-                    <nav className="text-[12px] font-semibold text-white/60 mb-4 flex items-center gap-1.5">
-                        <Link href="/" className="hover:text-white">Home</Link><span>/</span>
-                        <Link href={crumbHref} className="hover:text-white">{crumbLabel}</Link><span>/</span>
-                        <span className="text-white/90">{title}</span>
-                    </nav>
-                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{title}</h1>
-                    <p className="mt-3 text-white/80 leading-relaxed max-w-xl">{description}</p>
-                </div>
-            </section>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 lg:py-14">
+            <nav className="text-[12px] font-semibold text-text-muted mb-6 flex items-center gap-1.5">
+                <Link href="/" className="hover:text-brand-primary">Home</Link><span>/</span>
+                <Link href={crumbHref} className="hover:text-brand-primary">{crumbLabel}</Link><span>/</span>
+                <span className="text-text-secondary">{title}</span>
+            </nav>
 
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 -mt-14 relative z-10">
-                <div className="rounded-2xl border border-border-card bg-surface-card p-6 sm:p-8 shadow-2xl">
-                    {children}
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+                {/* Image — full and visible, sticky beside the form on desktop */}
+                <div className="lg:sticky lg:top-24">
+                    <img
+                        src={image}
+                        alt={imageAlt}
+                        className="w-full h-56 sm:h-72 lg:h-[600px] object-cover rounded-2xl border border-border-card shadow-xl"
+                    />
+                </div>
+
+                {/* Heading + form */}
+                <div>
+                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-text-primary">{title}</h1>
+                    <p className="mt-3 text-text-secondary leading-relaxed">{description}</p>
+                    <div className="mt-6 rounded-2xl border border-border-card bg-surface-card p-6 sm:p-8 shadow-lg">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>
