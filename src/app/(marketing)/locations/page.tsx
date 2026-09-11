@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
 import { CtaButtons } from "@/components/marketing/MarketingShell";
+import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { locations } from "@/lib/marketing/taxonomy";
 import { CONTACT_EMAIL, breadcrumbLd } from "@/lib/seo";
 
@@ -19,13 +20,9 @@ export default function LocationsHub() {
     return (
         <>
             <JsonLd data={breadcrumbLd([{ name: "Home", path: "/" }, { name: TITLE, path: "/locations" }])} />
-            <section className="border-b border-border-card bg-surface-card">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-text-primary">Service areas — nationwide</h1>
-                    <p className="mt-4 text-lg text-text-secondary leading-relaxed max-w-2xl">{DESC}</p>
-                    <CtaButtons className="mt-7" />
-                </div>
-            </section>
+            <MarketingHero image="/healthcare_professionals_diversity.png" title="Service areas — nationwide" description={DESC}>
+                <CtaButtons className="mt-7" />
+            </MarketingHero>
             <section className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
                 <h2 className="text-xl font-black text-text-primary mb-2">Where we’re active now</h2>
                 <p className="text-text-secondary mb-6 max-w-2xl">Dedicated pages for our launch market in Washington. We staff and provide care beyond these cities — request your location and we’ll coordinate coverage.</p>

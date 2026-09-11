@@ -26,7 +26,7 @@ const FIELDS: IntakeField[] = [
 
 export default function RequestHomeCarePage() {
     return (
-        <RequestPageLayout crumbLabel="Home Care" crumbHref="/home-care" title="Request in-home care" description={DESC} image="/Home%20Care%20Banner.png" imageAlt="In-home senior care">
+        <RequestPageLayout crumbLabel="Home Care" crumbHref="/home-care" title="Request in-home care" description={DESC}>
             <IntakeForm fields={FIELDS} inquiryType="Home Care Request" submitLabel="Request home care"
                 successMessage="Thanks — we’ve received your request and a care coordinator will reach out shortly." />
         </RequestPageLayout>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { CtaButtons } from "@/components/marketing/MarketingShell";
+import { MarketingHero } from "@/components/marketing/MarketingHero";
 import { HubGrid } from "@/components/marketing/HubGrid";
 import { facilityServices } from "@/lib/marketing/taxonomy";
 import { breadcrumbLd, SITE_AREA } from "@/lib/seo";
@@ -19,16 +20,9 @@ export default function FacilityStaffingHub() {
     return (
         <>
             <JsonLd data={breadcrumbLd([{ name: "Home", path: "/" }, { name: TITLE, path: "/facility-staffing" }])} />
-            <section className="border-b border-border-card bg-surface-card">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-                    <p className="text-sm font-black uppercase tracking-wider text-brand-primary">For Facilities</p>
-                    <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight text-text-primary max-w-3xl">
-                        Dependable healthcare staffing for facilities nationwide
-                    </h1>
-                    <p className="mt-4 text-lg text-text-secondary leading-relaxed max-w-2xl">{DESC}</p>
-                    <CtaButtons className="mt-7" />
-                </div>
-            </section>
+            <MarketingHero image="/Facility%20Banner.png" eyebrow="For Facilities" title="Dependable healthcare staffing for facilities nationwide" description={DESC}>
+                <CtaButtons className="mt-7" />
+            </MarketingHero>
             <section className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
                 <h2 className="text-xl font-black text-text-primary mb-6">Staffing services</h2>
                 <HubGrid items={facilityServices} basePath="/facility-staffing" />

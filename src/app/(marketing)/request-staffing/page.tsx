@@ -28,7 +28,7 @@ const FIELDS: IntakeField[] = [
 
 export default function RequestStaffingPage() {
     return (
-        <RequestPageLayout crumbLabel="Facility Staffing" crumbHref="/facility-staffing" title="Request staffing for your facility" description={DESC} image="/Facility%20Banner.png" imageAlt="Healthcare facility staffing">
+        <RequestPageLayout crumbLabel="Facility Staffing" crumbHref="/facility-staffing" title="Request staffing for your facility" description={DESC}>
             <IntakeForm fields={FIELDS} inquiryType="Facility Staffing Request" submitLabel="Request staffing"
                 successMessage="Thanks — we’ve received your staffing request and will be in touch shortly." />
         </RequestPageLayout>
