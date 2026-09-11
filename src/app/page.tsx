@@ -188,14 +188,12 @@ export default function LandingPage() {
                     <Link href="/" className="flex items-center gap-2">
                         <img src="/logo.png" alt="Pristine Health" className="h-10 w-auto brightness-110 dark:brightness-100" />
                     </Link>
-                    <nav className="hidden md:flex items-center gap-7 text-sm font-semibold">
-                        <a href="#workforce" className="hover:text-brand-primary transition-colors">Facility Staffing</a>
-                        <a href="#in-home" className="hover:text-brand-primary transition-colors">In-Home Care</a>
-                        <a href="#quality" className="hover:text-brand-primary transition-colors">Quality</a>
-                        <a href="#technology" className="hover:text-brand-primary transition-colors">Technology</a>
+                    <nav className="hidden md:flex items-center gap-6 text-sm font-semibold">
+                        <Link href="/facility-staffing" className="hover:text-brand-primary transition-colors">Facility Staffing</Link>
+                        <Link href="/home-care" className="hover:text-brand-primary transition-colors">Home Care</Link>
+                        <Link href="/locations" className="hover:text-brand-primary transition-colors">Service Areas</Link>
+                        <Link href="/jobs" className="hover:text-brand-primary transition-colors">Careers</Link>
                         <a href="#contact" className="hover:text-brand-primary transition-colors">Contact</a>
-                        <Link href="/jobs" className="hover:text-brand-primary transition-colors">Open Positions</Link>
-                        <Link href="/jobs/track" className="hover:text-brand-primary transition-colors">Track Application</Link>
                     </nav>
                     <div className="flex items-center gap-3">
                         <button onClick={toggleTheme} className="p-2 rounded-xl text-slate-500 hover:bg-slate-200/50 dark:hover:bg-white/[0.05] transition-all" title="Toggle theme">
@@ -553,9 +551,9 @@ export default function LandingPage() {
                     <div className="space-y-3">
                         <h4 className="text-white font-bold text-sm">Solutions</h4>
                         <ul className="space-y-2 text-xs">
-                            <li><a href="#workforce" className="hover:text-white transition-colors">Facility Staffing</a></li>
-                            <li><a href="#in-home" className="hover:text-white transition-colors">In-Home Care</a></li>
-                            <li><a href="#technology" className="hover:text-white transition-colors">Technology</a></li>
+                            <li><Link href="/facility-staffing" className="hover:text-white transition-colors">Facility Staffing</Link></li>
+                            <li><Link href="/home-care" className="hover:text-white transition-colors">Home Care</Link></li>
+                            <li><Link href="/locations" className="hover:text-white transition-colors">Service Areas</Link></li>
                         </ul>
                     </div>
                     <div className="space-y-3">
