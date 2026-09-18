@@ -9,6 +9,7 @@ import {
     ChevronLeft, ChevronRight, Download, MapPin, GripVertical, ChevronUp, ChevronDown, Copy
 } from "lucide-react";
 import { downloadApplicationPdf, toApplicationPdfData } from "@/lib/pdf/application";
+import { formatJobRef } from "@/lib/jobRef";
 import type { DocumentType } from "@/models/ApplicationDocument";
 import { DOCUMENT_METADATA, getDefaultApplicationDocuments, getDocumentLabel, usesMetadataOnlyStorage } from "@/lib/documentMetadata";
 import { LOCATION_OPTIONS, formatLocation } from "@/lib/usStates";
@@ -51,6 +52,7 @@ interface JobPosition {
     title: string;
     location?: string | null;
     city?: string | null;
+    refNumber?: number | null;
     sections: JobSection[];
     status: 'draft' | 'open' | 'closed';
     formId?: string;
@@ -1350,11 +1352,11 @@ export function JobsTab() {
                                                     )}
                                                     <button
                                                         type="button"
-                                                        onClick={() => navigator.clipboard?.writeText(job._id)}
+                                                        onClick={() => navigator.clipboard?.writeText(formatJobRef(job.refNumber) ?? job._id)}
                                                         title="Copy Job ID"
                                                         className="mt-0.5 flex items-center gap-1 text-[11px] font-mono font-normal text-slate-500 hover:text-cyan-400 transition-colors"
                                                     >
-                                                        <Copy className="h-3 w-3" /> {job._id}
+                                                        <Copy className="h-3 w-3" /> {formatJobRef(job.refNumber) ?? job._id}
                                                     </button>
                                                 </td>
                                                 <td className="p-4">
