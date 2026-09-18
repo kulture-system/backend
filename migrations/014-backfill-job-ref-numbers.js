@@ -22,10 +22,22 @@ function dynamicModel(name, collection) {
   return mongoose.model(name, schema);
 }
 
+// Counter uses a STRING _id (the sequence name, e.g. "jobRef"), so it needs its
+// own schema — the schemaless helper defaults _id to ObjectId and can't query
+// by "jobRef".
+function counterModel() {
+  if (mongoose.models.Counter) return mongoose.models.Counter;
+  const schema = new mongoose.Schema(
+    { _id: String, seq: { type: Number, default: 0 } },
+    { collection: 'counters', versionKey: false },
+  );
+  return mongoose.model('Counter', schema);
+}
+
 async function up(_models, opts) {
   const dryRun = !!(opts && opts.dryRun);
   const JobPosition = dynamicModel('JobPosition', 'jobpositions');
-  const Counter = dynamicModel('Counter', 'counters');
+  const Counter = counterModel();
 
   // Current max among jobs that already have a number.
   const withNumber = await JobPosition.find({ refNumber: { $type: 'number' } })
