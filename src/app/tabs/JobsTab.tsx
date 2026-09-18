@@ -6,7 +6,7 @@ import {
     Briefcase, Plus, ToggleLeft, ToggleRight, Loader2, Eye, 
     Calendar, CheckCircle, XCircle, AlertCircle, FileText, User, 
     Mail, MessageSquare, Send, Check, Trash2, X, ListTodo, Info, HelpCircle, Edit, ClipboardList,
-    ChevronLeft, ChevronRight, Download, MapPin, GripVertical, ChevronUp, ChevronDown
+    ChevronLeft, ChevronRight, Download, MapPin, GripVertical, ChevronUp, ChevronDown, Copy
 } from "lucide-react";
 import { downloadApplicationPdf, toApplicationPdfData } from "@/lib/pdf/application";
 import type { DocumentType } from "@/models/ApplicationDocument";
@@ -1348,6 +1348,14 @@ export function JobsTab() {
                                                             <MapPin className="h-3 w-3 text-cyan-400" /> {formatLocation(job.city, job.location)}
                                                         </span>
                                                     )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigator.clipboard?.writeText(job._id)}
+                                                        title="Copy Job ID"
+                                                        className="mt-0.5 flex items-center gap-1 text-[11px] font-mono font-normal text-slate-500 hover:text-cyan-400 transition-colors"
+                                                    >
+                                                        <Copy className="h-3 w-3" /> {job._id}
+                                                    </button>
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`text-xs ${formObj ? 'text-slate-300 font-medium' : 'text-slate-500 italic'}`}>
